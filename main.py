@@ -1,20 +1,11 @@
 import argparse
-
-import torch
-from transformers import pipeline
+from threading import Thread
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
     models,
-    pipeline,
+    TextIteratorStreamer,
 )
-from transformers.modeling_outputs import CausalLMOutputWithPast
-import time
-from functools import wraps
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 
 class Args:
@@ -29,6 +20,7 @@ class Args:
             "--weight",
             type=str,
             default=".cache/DeepSeek-R1-Distill-Qwen-1.5B",
+            # default=".cache/Qwen2.5-1.5B-Instruct",
             help="Path to the model",
         )
         args = parser.parse_args()
@@ -41,89 +33,76 @@ def main():
     # 加载 tokenizer 和 model
     tokenizer = AutoTokenizer.from_pretrained(args.weight)
     model: models.qwen2.Qwen2ForCausalLM = AutoModelForCausalLM.from_pretrained(
-        args.weight
+        args.weight,
+        low_cpu_mem_usage=True,
+        trust_remote_code=True,
+        # torch_dtype=torch.float16,
+        torch_dtype="auto",
+        device_map="auto",
     )
     print(type(model))
-    if torch.backends.mps.is_available():
-        device = torch.device("mps")
-        model.to(device)
-        print("MPS is available")
+    # if torch.backends.mps.is_available():
+    #     device = torch.device("mps")
+    #     model.to(device)
+    #     print("MPS is available")
     print("加载模型成功")
 
-    generator = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        device=model.device,
-    )
-    # input_text = "你是谁"
-    # messages = [
-    #     {
-    #         "role": "user",
-    #         "content": f"Think in English and response in Chinese:\n{input_text}",
-    #     },
-    # ]
-
-    # outputs = generator(
-    #     messages,
-    #     max_new_tokens=1024,
-    #     do_sample=True,
-    #     temperature=0.7,
-    #     pad_token_id=tokenizer.pad_token_id,
-    # )
-    # print(outputs[-1]["generated_text"][-1]["content"])
-
-    messages = [
+    prompts = [
+        "你好，你是谁？",
+        "你的知识储备到哪一年？",
+        "Deepseek是什么？",
+        "怎么样评价这一家公司",
+    ]
+    history = [
         {
             "role": "system",
-            "content": "您是一个有帮助的、专注的、直截了当的助手。",
-        },
-        {
-            "role": "user",
-            # "content": "您可以提供香蕉和火龙果的食用搭配方法吗？",
-            "content": "你是谁",
-        },
+            "content": "您是一个有用的助手。",
+        }
     ]
-    # prompt = tokenizer.apply_chat_template(messages,
-    #                                             tokenize=False,
-    #                                             add_generation_prompt=True)
-    pipe = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
+    history, response = [], ""
+    for prompt in prompts:
+        print()
+        print("❓ prompt: ", prompt)
+        print("✅ response:")
+        partial_text = ""
+        for new_text in _chat_stream(model, tokenizer, prompt, history):
+            print(new_text, end="", flush=True)
+            partial_text += new_text
+        response = partial_text
+
+        history.append((prompt, response))
+
+
+def _chat_stream(model, tokenizer, query, history):
+    conversation = []
+    for query_h, response_h in history:
+        conversation.append({"role": "user", "content": query_h})
+        conversation.append({"role": "assistant", "content": response_h})
+    conversation.append({"role": "user", "content": query})
+    input_text = tokenizer.apply_chat_template(
+        conversation,
+        add_generation_prompt=True,
+        tokenize=False,
     )
-
-    generation_args = {
-        "max_new_tokens": 3072,
-        "return_full_text": False,
-        "temperature": 0.0,
-        "do_sample": False,
+    inputs = tokenizer([input_text], return_tensors="pt").to(model.device)
+    streamer = TextIteratorStreamer(
+        tokenizer=tokenizer, skip_prompt=True, timeout=60.0, skip_special_tokens=True
+    )
+    generation_kwargs = {
+        **inputs,
+        "streamer": streamer,
+        "max_new_tokens": 2048,
+        "temperature": 0.1,
+        "do_sample": True,
+        "top_p": 1.0,
+        "top_k": 50,
+        "repetition_penalty": 1.1,
     }
+    thread = Thread(target=model.generate, kwargs=generation_kwargs)
+    thread.start()
 
-    # inputs = tokenizer.encode(prompt, add_special_tokens=True, return_tensors="pt").to("cuda")
-    # outputs = model.generate(input_ids=inputs.to(model.device),
-    #                          max_new_tokens=max_length,
-    #                          do_sample=True,
-    #                          temperature=0.1,
-    #                          top_k=50,
-    #                          )
-    output = pipe(messages, **generation_args)
-    print(output[0]["generated_text"])
-
-
-def stop_watch(func):
-    @wraps(func)
-    def wrapper(*args, **kargs):
-        logger.debug(f"🚦 [@stop_watch] measure time to run `{func.__name__}`.")
-        start = time.time()
-        result = func(*args, **kargs)
-        elapsed_time = time.time() - start
-        logger.debug(
-            f"🚦 [@stop_watch] take {elapsed_time:.3f} sec to run `{func.__name__}`."
-        )
-        return result
-
-    return wrapper
+    for new_text in streamer:
+        yield new_text
 
 
 if __name__ == "__main__":
