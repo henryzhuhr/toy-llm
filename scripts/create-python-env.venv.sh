@@ -34,5 +34,6 @@ echo "Run the following command to activate the environment:"
 echo "source $ENV_PATH/bin/activate"
 echo
 
+python3 -m pip install --upgrade pip
 
 # pip install -r requirements.txt
