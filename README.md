@@ -36,4 +36,4 @@ docker compose down
 
 ## License
 
-toy-llm is [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) licensed, see the [LICENSE](LICENSE) file for details.
+This project is [The MIT License (MIT)](https://mit-license.org) licensed, see the [LICENSE](LICENSE) file for details.
