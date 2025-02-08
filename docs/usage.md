@@ -13,12 +13,10 @@ outline: deep
 
 ## 项目进展
 
+- 「2025.02.07」 支持 DeepSeek-R1 和 Qwen2.5
 - 「2024.06.09」 支持基于 2024.6.7 开源的 [Qwen2](https://qwenlm.github.io/blog/qwen2/)([Code](https://github.com/QwenLM/Qwen2)) 模型进行指令微调的任务，目前仅完成了对话交流功能
 - 「2024.04.28」 基于千文大模型(Qwen1.5)的模型导出和模型推理测试，并且完成了上下文对话的测试，能记录用户的对话历史
 - 「2024.04.26」 项目启动
-
-> TODO: 引入更多大模型。聊天只是一个最基本的功能，计划利用大模型的理解能力和生成能力，完成更多有趣的功能
-
 
 
 ## 模型仓库
@@ -45,15 +43,16 @@ outline: deep
 
 ### 获取源码
 获取项目源码
+
 ::: code-group
 
 ```shell [HTTP]
-git clone https://github.com/HenryZhuHR/toyllm
+git clone https://github.com/henryzhuhr/toyllm
 cd toyllm
 ```
 
 ```shell [SSH]
-git clone git@github.com:HenryZhuHR/toyllm.git
+git clone git@github.com:henryzhuhr/toyllm.git
 cd toyllm
 ```
 

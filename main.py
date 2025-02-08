@@ -19,8 +19,8 @@ class Args:
         parser.add_argument(
             "--weight",
             type=str,
-            default=".cache/DeepSeek-R1-Distill-Qwen-1.5B",
-            # default=".cache/Qwen2.5-1.5B-Instruct",
+            # default=".cache/DeepSeek-R1-Distill-Qwen-7B",
+            default=".cache/Qwen2.5-0.5B-Instruct",
             help="Path to the model",
         )
         args = parser.parse_args()
