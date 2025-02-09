@@ -2,39 +2,15 @@ import argparse
 from threading import Thread
 from typing import List
 import torch
+from torch import nn
 from transformers import (
     AutoTokenizer,
     PreTrainedTokenizer,
+    PreTrainedModel,
     AutoModelForCausalLM,
     models,
     TextIteratorStreamer,
 )
-
-
-class Args:
-    def __init__(self):
-        args = self.get_args()
-        self.weight: str = args.weight
-
-        # inference parameters
-        self.max_new_tokens: int = args.max_new_tokens
-        self.temperature: float = args.temperature
-
-    @staticmethod
-    def get_args():
-        parser = argparse.ArgumentParser(description="Process some integers.")
-        parser.add_argument(
-            "--weight",
-            type=str,
-            # default=".cache/DeepSeek-R1-Distill-Qwen-7B",
-            default=".cache/Qwen2.5-0.5B-Instruct",
-            help="Path to the model",
-        )
-        # inference parameters
-        parser.add_argument("--max-new-tokens", type=int, default=2048)
-        parser.add_argument("--temperature", type=float, default=0.2)
-        args = parser.parse_args()
-        return args
 
 
 def main():
@@ -46,16 +22,13 @@ def main():
         args.weight,
         low_cpu_mem_usage=True,
         trust_remote_code=True,
-        # torch_dtype=torch.float16,
-        torch_dtype="auto",
+        torch_dtype=torch.bfloat16,
+        # torch_dtype="auto",
         device_map="auto",
     )
-    print(type(model))
-    if torch.backends.mps.is_available():
-        device = torch.device("mps")
-        model.to(device)
-        print("MPS is available")
-    print("加载模型成功")
+
+    _demo_chat(model, tokenizer)
+    return
 
     prompts = [
         "你好，你是谁？",
@@ -74,18 +47,85 @@ def main():
     for prompt in prompts:
         print()
         print("❓ prompt  : ", prompt)
-        print("✅ response:")
+        print("🤖 response:")
         partial_text = ""
-        for new_text in _chat_stream(model, tokenizer, prompt, history):
+        for new_text in _chat_stream(
+            model,
+            tokenizer,
+            prompt,
+            history,
+            max_new_tokens=args.max_new_tokens,
+            temperature=args.temperature,
+        ):
             print(new_text, end="", flush=True)
             partial_text += new_text
         response = partial_text
 
         history.append([prompt, response])
+    print()
+
+
+def _demo_chat(
+    model: models.qwen2.Qwen2ForCausalLM,
+    # model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizer,
+):
+    """
+    推理 demo
+    """
+    from transformers.modeling_outputs import CausalLMOutputWithPast
+
+    prompt = {
+        "role": "user",
+        "content": "你好，你是谁？",
+    }
+    # 输入文本 应用模板
+    input_text = tokenizer.apply_chat_template(
+        [prompt],
+        add_generation_prompt=True,
+        tokenize=False,
+    )
+    print(
+        "input_text:", input_text
+    )  # input_text: <｜begin▁of▁sentence｜>你好，你是谁？<｜Assistant｜>
+
+    # 输入文本编码
+    inputs = tokenizer([input_text], return_tensors="pt").to(model.device)
+    print("inputs:", inputs)
+    print("inputs:", inputs["input_ids"].shape)  # torch.Size([1, N])
+
+    # 模型推理
+    with torch.no_grad():
+        outputs: CausalLMOutputWithPast = model.forward(**inputs)
+    print("outputs:", outputs)
+    print("outputs:", outputs.logits.shape)  # torch.Size([1, N, 151936])
+
+    # 解码
+    generated_text = tokenizer.decode(outputs.logits[0].argmax(dim=-1))
+    print("generated_text:", generated_text)
+
+    # 调用 model.generate 方法生成文本
+    generation_kwargs = {
+        **inputs,
+        "max_new_tokens": 200,
+        "temperature": 0.1,
+        "do_sample": True,
+        "top_p": 1.0,
+        "top_k": 50,
+        "repetition_penalty": 1.1,
+    }
+    with torch.no_grad():
+        output = model.generate(**generation_kwargs)
+    print("outputs:", outputs)
+    print("outputs:", outputs.logits.shape)  # torch.Size([1, N, 151936])
+
+    # 解码生成的输出
+    generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
+    print("generated_text:", generated_text)
 
 
 def _chat_stream(
-    model,
+    model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     query,
     history: List[List[str]],
@@ -124,6 +164,34 @@ def _chat_stream(
 
     for new_text in streamer:
         yield new_text
+
+
+class Args:
+    """命令行参数"""
+
+    def __init__(self):
+        args = self.get_args()
+        self.weight: str = args.weight
+
+        # inference parameters
+        self.max_new_tokens: int = args.max_new_tokens
+        self.temperature: float = args.temperature
+
+    @staticmethod
+    def get_args():
+        parser = argparse.ArgumentParser(description="Process some integers.")
+        parser.add_argument(
+            "--weight",
+            type=str,
+            default=".cache/models/DeepSeek-R1-Distill-Qwen-1.5B",
+            # default=".cache/models/Qwen2.5-1.5B-Instruct",
+            help="Path to the model",
+        )
+        # inference parameters
+        parser.add_argument("--max-new-tokens", type=int, default=4096)
+        parser.add_argument("--temperature", type=float, default=0.2)
+        args = parser.parse_args()
+        return args
 
 
 if __name__ == "__main__":
