@@ -82,6 +82,19 @@ conda create -n toyllm python -y
 conda activate toyllm
 ```
 
+## 获取模型
+
+### 下载模型
+### 链接模型
+
+为了方便使用，可以链接模型到 `.cache/models/` 目录下
+```shell
+mkdir -p .cache/models
+ln -s /path/to/model .
+# 例如 模型下载到 ~/data/DeepSeek-R1-Distill-Qwen-1.5B
+ln -s ~/data/DeepSeek-R1-Distill-Qwen-1.5B .cache/models/
+``` 
+
 ## 项目使用说明
 
 

@@ -1,7 +1,10 @@
 import argparse
 from threading import Thread
+from typing import List
+import torch
 from transformers import (
     AutoTokenizer,
+    PreTrainedTokenizer,
     AutoModelForCausalLM,
     models,
     TextIteratorStreamer,
@@ -13,6 +16,10 @@ class Args:
         args = self.get_args()
         self.weight: str = args.weight
 
+        # inference parameters
+        self.max_new_tokens: int = args.max_new_tokens
+        self.temperature: float = args.temperature
+
     @staticmethod
     def get_args():
         parser = argparse.ArgumentParser(description="Process some integers.")
@@ -23,6 +30,9 @@ class Args:
             default=".cache/Qwen2.5-0.5B-Instruct",
             help="Path to the model",
         )
+        # inference parameters
+        parser.add_argument("--max-new-tokens", type=int, default=2048)
+        parser.add_argument("--temperature", type=float, default=0.2)
         args = parser.parse_args()
         return args
 
@@ -41,10 +51,10 @@ def main():
         device_map="auto",
     )
     print(type(model))
-    # if torch.backends.mps.is_available():
-    #     device = torch.device("mps")
-    #     model.to(device)
-    #     print("MPS is available")
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+        model.to(device)
+        print("MPS is available")
     print("加载模型成功")
 
     prompts = [
@@ -59,10 +69,11 @@ def main():
             "content": "您是一个有用的助手。",
         }
     ]
-    history, response = [], ""
+    history = []
+    response = ""
     for prompt in prompts:
         print()
-        print("❓ prompt: ", prompt)
+        print("❓ prompt  : ", prompt)
         print("✅ response:")
         partial_text = ""
         for new_text in _chat_stream(model, tokenizer, prompt, history):
@@ -70,10 +81,20 @@ def main():
             partial_text += new_text
         response = partial_text
 
-        history.append((prompt, response))
+        history.append([prompt, response])
 
 
-def _chat_stream(model, tokenizer, query, history):
+def _chat_stream(
+    model,
+    tokenizer: PreTrainedTokenizer,
+    query,
+    history: List[List[str]],
+    max_new_tokens=200,
+    temperature=0.2,
+):
+    """
+    Chat with the model, streaming the output as it is generated.
+    """
     conversation = []
     for query_h, response_h in history:
         conversation.append({"role": "user", "content": query_h})
@@ -91,8 +112,8 @@ def _chat_stream(model, tokenizer, query, history):
     generation_kwargs = {
         **inputs,
         "streamer": streamer,
-        "max_new_tokens": 2048,
-        "temperature": 0.1,
+        "max_new_tokens": max_new_tokens,
+        "temperature": temperature,
         "do_sample": True,
         "top_p": 1.0,
         "top_k": 50,

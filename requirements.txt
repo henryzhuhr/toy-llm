@@ -5,9 +5,10 @@
 torch
 torchvision
 
-transformers>=4.40.0
+transformers>4.40.0
 huggingface-hub>=0.21.3
 accelerate>=0.26.0
+vllm
 
 # -- onnx--
 # onnx>=1.15.0
