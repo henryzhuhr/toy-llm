@@ -12,6 +12,7 @@ bitsandbytes # from transformers import BitsAndBytesConfig
 huggingface-hub>=0.21.3
 accelerate>=0.26.0
 vllm
+tensorboardX
 
 # -- onnx--
 # onnx>=1.15.0
