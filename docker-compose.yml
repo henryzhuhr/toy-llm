@@ -6,8 +6,68 @@ services:
     image: toyllm_ubuntu_dev:latest  # 构建后镜像的名称和标签
     environment:
       APP: toyllm
+    networks:
+      - default
     volumes:
       - .:/root/toyllm
     working_dir: /root/toyllm
     # sleep infinity 用于保持容器运行，否则 vscode 无法进入容器，建议写在 .devcontainer/docker-compose.yml 文件中
     command: sleep infinity
+
+  
+  ollama-server:
+    image: ollama/ollama:latest
+    pull_policy: always
+    restart: unless-stopped
+    entrypoint: ["/usr/bin/bash", "/entrypoint.sh"]
+    environment:
+      - OLLAMA_MODELS=${OLLAMA_MODELS:-qwen2.5:3b}
+      # '/Users/henryzhu/data/qwen2.5:0.5b'
+    networks:
+      - default
+    volumes:
+      - ./scripts/entrypoint.sh:/entrypoint.sh # 用于修改 entrypoint.sh 文件
+      # - ollama_volume:/root/.ollama # 貌似不需要挂载   
+    ports:
+      - "11434:11434"
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail http://localhost:11434/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080" # http://localhost:3000
+    volumes:
+      - open_webui_volume:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://ollama-server:11434
+      - WEBUI_NAME="Your Local AI Assistant" # Sets the main WebUI name. Appends (Open WebUI) if overridden.
+      - WEBUI_AUTH=False
+      - WEBUI_SECRET_KEY=t0p-s3cr3t
+    restart: unless-stopped
+
+
+# -- 网络名称，用于容器间通信
+networks:
+  default:
+    name: toyllm-network
+  
+volumes:
+  # ollama_volume:
+  open_webui_volume:

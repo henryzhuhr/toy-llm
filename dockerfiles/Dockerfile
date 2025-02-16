@@ -1,5 +1,5 @@
 # Get the base image
-FROM ubuntu:latest
+FROM ubuntu:24.04
 
 # ============================================================
 #   安装基础的环境 (分为开发环境和部署环境)
@@ -57,6 +57,9 @@ ENV LANG=zh_CN.utf8
 # 修改时区 (date -R 检查当前时间)
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
+# 启用 bash 补全
+RUN sed -i.bak '/^#if ! shopt -oq posix; then$/,/^#fi$/s/^#//' /etc/bash.bashrc
+
 ARG USER_NAME="root"
 ARG USER_HOME="/${USER_NAME}"
 
@@ -82,3 +85,4 @@ RUN set -x && \
 
 # 提升虚拟环境 python 的优先级
 ENV PATH=${PYTHON_VENV_DIR}/bin:$PATH
+ENV VIRTUAL_ENV_DISABLE_PROMPT=1
