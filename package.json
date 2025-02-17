@@ -4,8 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "vuepress:docs:dev": "vuepress dev docs",
-    "vuepress:docs:build": "vuepress build docs",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",

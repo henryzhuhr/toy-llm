@@ -137,4 +137,4 @@ python infer-chat.py \
 
 ## License
 
-本项目遵循 [GPL-3.0](https://opensource.org/licenses/GPL-3.0) 协议，请遵循协议使用本项目
+本项目遵循 [The MIT License (MIT)](https://mit-license.org) 协议

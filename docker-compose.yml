@@ -30,13 +30,13 @@ services:
       # - ollama_volume:/root/.ollama # 貌似不需要挂载   
     ports:
       - "11434:11434"
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD-SHELL", "curl --silent --fail http://localhost:11434/ || exit 1"]
       interval: 30s

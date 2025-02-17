@@ -3,7 +3,7 @@
 layout: home
 
 hero:
-  name: "ToyLLM"
+  name: "Toy LLM"
   # text: "A VitePress Site"
   tagline: 一个大模型的学习项目
   actions:

@@ -4,21 +4,27 @@
 
 python-dotenv
 
+# -- torch --
 torch
 torchvision
 
+
+# -- transformers & huggingface --
 transformers>4.40.0
 bitsandbytes # from transformers import BitsAndBytesConfig
 huggingface-hub>=0.21.3
 accelerate>=0.26.0
-vllm
 tensorboardX
+
 
 # -- ollama -- 
 ollama
 
 # -- openai --
 openai
+
+# -- qwen --
+qwen_agent
 
 # -- onnx--
 # onnx>=1.15.0
