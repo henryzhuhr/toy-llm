@@ -25,6 +25,7 @@ openai
 
 # -- qwen --
 qwen_agent
+python-dateutil
 
 # -- onnx--
 # onnx>=1.15.0

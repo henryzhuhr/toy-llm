@@ -28,7 +28,7 @@ def test(fncall_prompt_type: str = "qwen"):
     llm = get_chat_model(
         {
             # Use your own model service compatible with OpenAI API:
-            "model": "qwen2.5:32b",
+            "model": "qwen2.5:3",
             # "model_server": "http://ollama-server:11434/v1/",  # api_base
             "model_server": "http://localhost:11434/v1/",  # api_base
             "api_key": "EMPTY",
