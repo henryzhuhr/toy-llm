@@ -27,6 +27,19 @@ openai
 qwen_agent
 python-dateutil
 
+
+# langchain_community
+langchain 
+bs4
+langchain_community
+
+# Chroma
+langchain_chroma
+
+# Ollama
+langchain-ollama
+
+
 # -- onnx--
 # onnx>=1.15.0
 
