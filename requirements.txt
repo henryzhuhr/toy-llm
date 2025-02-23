@@ -29,16 +29,14 @@ python-dateutil
 
 
 # langchain_community
-langchain 
+langchain #==0.2.74
+langchain-community #==0.3.17
+langchain-ollama #== 0.2.3
+langchain-chroma #==0.2.2
+langgraph #==0.2.74
 bs4
-langchain_community
-
-# Chroma
-langchain_chroma
-
-# Ollama
-langchain-ollama
-
+spacy
+faiss-cpu # faiss-gpu
 
 # -- onnx--
 # onnx>=1.15.0
