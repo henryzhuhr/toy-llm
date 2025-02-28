@@ -38,6 +38,10 @@ bs4
 spacy
 faiss-cpu # faiss-gpu
 
+langgraph
+langsmith
+langchain_anthropic
+
 # -- onnx--
 # onnx>=1.15.0
 
