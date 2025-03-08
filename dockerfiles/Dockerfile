@@ -86,3 +86,6 @@ RUN set -x && \
 # 提升虚拟环境 python 的优先级
 ENV PATH=${PYTHON_VENV_DIR}/bin:$PATH
 ENV VIRTUAL_ENV_DISABLE_PROMPT=1
+
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    echo "export PATH=\$HOME/.local/bin:$PATH" >> $USER_HOME/.bashrc

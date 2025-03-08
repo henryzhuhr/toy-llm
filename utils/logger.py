@@ -1,21 +1,10 @@
-from logging import getLogger, StreamHandler, Formatter
 import logging
-from logging import (
-    getLogger,
-    StreamHandler,
-    FileHandler,
-    Formatter,
-    Filter,
-    Handler,
-)
+from logging import FileHandler, Filter, Formatter, Handler, StreamHandler, getLogger
 from logging.handlers import RotatingFileHandler
 from typing import List, Optional
 
 DEFAULT_FORMAT_STR = (
-    "[%(asctime)s]"
-    " | %(levelname)s"
-    " | %(pathname)s:%(lineno)d"
-    " | %(message)s"
+    "[%(asctime)s]" " | %(levelname)s" " | %(pathname)s:%(lineno)d" " | %(message)s"
 )
 
 
@@ -117,10 +106,11 @@ class CLogger:
         self.logger.addHandler(handler)
 
 
+# 创建日志记录器
+clogger = CLogger(__name__)
+logger = clogger.get_logger()
+
 if __name__ == "__main__":
-    # 创建日志记录器
-    clogger = CLogger(__name__)
-    logger = clogger.get_logger()
     logger.setLevel(logging.DEBUG)  # 设置全局日志级别
 
     # 记录日志

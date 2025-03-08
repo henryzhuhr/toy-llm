@@ -7,11 +7,6 @@ from langchain_core.tools import BaseTool
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_ollama import ChatOllama
 from langchain_community.tools import CopyFileTool
-from langchain.tools.json.tool import (
-    JsonGetValueTool,
-    JsonListKeysTool,
-    JsonSpec,
-)
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledGraph
@@ -30,7 +25,9 @@ class State(TypedDict):
 
 class ChatBotNode:
     def __init__(self, tools: List[BaseTool] = []):
-        self.llm = ChatOllama(model="qwen2.5:3b")  # 初始化 ChatOllama 模型
+        self.llm = ChatOllama(
+            base_url="http://host.docker.internal:11434", model="qwen2.5:3b"
+        )  # 初始化 ChatOllama 模型
         self.llm = self.llm.bind_tools(tools)
 
     def chatbot(self, state: State):
@@ -60,7 +57,7 @@ def main():
     graph_builder = StateGraph(State)
 
     # 工具
-    copy_file_tool = CopyFileTool(root_dir='/tmp/tmprdvsw3tg')
+    copy_file_tool = CopyFileTool(root_dir="/tmp/tmprdvsw3tg")
     # 工具包: https://python.langchain.ac.cn/docs/integrations/tools/
     tools = [
         copy_file_tool,

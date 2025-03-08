@@ -1,6 +1,8 @@
---index-url https://download.pytorch.org/whl/cu121
+# --index-url https://download.pytorch.org/whl/cu121
 --extra-index-url https://download.pytorch.org/whl/cpu
 --extra-index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+loguru
 
 python-dotenv
 
@@ -35,7 +37,7 @@ langchain-ollama #== 0.2.3
 langchain-chroma #==0.2.2
 langgraph #==0.2.74
 bs4
-spacy
+# spacy
 faiss-cpu # faiss-gpu
 
 langgraph
@@ -60,3 +62,7 @@ langchain_anthropic
 # GPUtil
 # datasets
 # peft
+
+
+# -- 百度搜索 --
+baidusearch

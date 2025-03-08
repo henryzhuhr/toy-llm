@@ -10,7 +10,7 @@
 	],
 	// The 'service' property is the name of the service for the container that VS Code should
 	// use. Update this value and .devcontainer/docker-compose.yml to the real service name.
-	"service": "toyllm-development-env",
+	"service": "toy-llm",
 
 	// The optional 'workspaceFolder' property is the path VS Code should open by default when
 	// connected. This is typically a file mount in .devcontainer/docker-compose.yml
@@ -41,14 +41,19 @@
 				"bierner.markdown-preview-github-styles",
 				"mhutchie.git-graph",
 				"waderyan.gitblame",
+				"eamodio.gitlens",
 				"ms-vscode-remote.remote-containers",
 				"ms-azuretools.vscode-docker",
-				"ms-python.vscode-pylance",
 				"ms-python.python",
-				"donjayamanne.python-environment-manager",
+				"ms-python.vscode-pylance",
 				"ms-python.debugpy",
+				"ms-python.pylint",
+				"ms-python.mypy-type-checker",
 				"ms-python.black-formatter",
-				"KevinRose.vsc-python-indent"
+				"ms-python.isort",
+				"timonwong.shellcheck",
+				"GitHub.copilot",
+				"GitHub.copilot-chat"
 			]
 		}
 	}
