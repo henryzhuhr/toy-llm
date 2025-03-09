@@ -44,6 +44,26 @@ Begin!
 Question: {input}
 Thought:{agent_scratchpad}'''
 
+    template_cn = '''尽可能回答以下问题。您可以使用以下工具：
+
+{tools}
+
+使用以下格式：
+
+Question: 您必须回答的输入问题
+Thought: 你应该经常考虑该做什么
+Action: 采取的行动，应该是以下之一：{tool_names}
+Action Input: 动作的输入
+Observation: 行动的结果
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: 我现在知道最终答案
+Final Answer: 原始输入问题的最终答案
+
+Begin!
+
+Question: {input}
+Thought:{agent_scratchpad}'''
+
 
 agent_prompt = PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE.template)
 

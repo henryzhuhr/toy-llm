@@ -1,12 +1,13 @@
 import asyncio
+import datetime
 import json
 import os
 from abc import ABC, abstractmethod
-from json import tool
 from typing import Annotated, List, Sequence, TypedDict, Union
 
 from langchain import hub
-from langchain.agents import AgentExecutor, create_react_agent
+from langchain.agents import create_react_agent
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
@@ -20,47 +21,56 @@ from langchain_core.messages import (
 from langchain_core.prompts import PromptTemplate
 from langchain_core.prompts.chat import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 from langgraph.constants import END
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.prebuilt import ToolNode
 from loguru import logger
 from ollama import ResponseError
 
 from modules.prompt import agent_prompt
 from modules.tools.baidu_search import BaiduSearchTool
 
+SYSTEM_PROMPT = SystemMessage("你是一个乐于助人的助手。")
+
+
+class AgentState(TypedDict):
+    """代理的状态。"""
+
+    # add_messages is a reducer
+    # See https://github.langchain.ac.cn/langgraph/concepts/low_level/#reducers
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+
 
 async def main():
 
     tools = [
-        BaiduSearchTool(max_results=5),
+        BaiduSearchTool(max_results=10),
+        # TavilySearchResults(max_results=1),
     ]
-    tools_by_name = {tool.name: tool for tool in tools}
 
     prompt = agent_prompt
+    # prompt = hub.pull("hwchase17/structured-chat-agent")
+    logger.info(f"🤖 prompt: {prompt}")
 
-    try:
-        llm = ChatOllama(
-            base_url="http://host.docker.internal:11434",
-            # base_url="http://localhost:11434",
-            model="qwen2.5:7b",
-        )  # 初始化 ChatOllama 模型
-        llm.invoke([HumanMessage("你好")])
-    except ResponseError as e:
-        logger.error(f"🤖 ChatOllama 初始化失败: {e}")
-        return
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:7b")
+    llm = ChatOllama(base_url=base_url, model=model_name)
+    llm = llm.bind_tools(tools)
 
-    model_node = LLMNode(llm, prompt)
-    tool_node = ToolNode(tools_by_name)
+    # model_node = LLMNode(llm, prompt)
+    llm_agent = create_react_agent(llm, tools, prompt)
+    tool_node = ToolNode(tools)
 
     # Define a new graph
     workflow = StateGraph(AgentState)
 
     # Define the two nodes we will cycle between
-    workflow.add_node("agent", model_node.run)
-    workflow.add_node("tools", tool_node.run)
+    workflow.add_node("agent", llm_agent)
+    workflow.add_node(tool_node.name, tool_node)
 
     # Set the entrypoint as `agent`
     # This means that this node is the first one called
@@ -81,7 +91,7 @@ async def main():
         # Based on which one it matches, that node will then be called.
         {
             # If `tools`, then we call the tool node.
-            "continue": "tools",
+            "continue": tool_node.name,
             # Otherwise we finish.
             "end": END,
         },
@@ -89,7 +99,7 @@ async def main():
 
     # We now add a normal edge from `tools` to `agent`.
     # This means that after `tools` is called, `agent` node is called next.
-    workflow.add_edge("tools", "agent")
+    workflow.add_edge(tool_node.name, "agent")
 
     # Now we can compile and visualize our graph
     graph = workflow.compile()
@@ -106,12 +116,33 @@ async def main():
 
     inputs = {
         "messages": [
-            HumanMessage("谁是美网的冠军？"),
+            SystemMessage(
+                f"""
+                当前时间为{current_time()}。请使用中文回答。
+                如果你不清楚答案，或者不确定答案，请使用可用使用的工具进行回答，你可以使用如下工具 {[tool.name for tool in tools]}
+                """
+            ),
+            HumanMessage("2024年美国大选结果"),
+            # HumanMessage("深圳天气如何"),
         ]
     }
     for stream in graph.stream(inputs, stream_mode="values"):
+        message: Union[BaseMessage, HumanMessage, AIMessage, ToolMessage, SystemMessage]
         message = stream["messages"][-1]
-        print(message)
+
+        MESSAGE_ICON = {
+            SystemMessage: "🧪",
+            HumanMessage: "🙋",
+            AIMessage: "🤖",
+            ToolMessage: "🛠️",
+        }
+
+        logger.info(
+            f"{MESSAGE_ICON.get(type(message), ' ')} [{message.type}] message: {message}"
+        )
+
+        if isinstance(message, AIMessage):
+            logger.warning(f"🤖 [response] {message.content}")
 
 
 class AgentState(TypedDict):
@@ -131,26 +162,6 @@ class BaseNode(ABC):
         raise NotImplementedError
 
 
-class ToolNode(BaseNode):
-    def __init__(self, tools_by_name):
-        self.tools_by_name = tools_by_name
-
-    def run(self, state: AgentState):
-        outputs = []
-        for tool_call in state["messages"][-1].tool_calls:
-            tool_result = self.tools_by_name[tool_call["name"]].invoke(
-                tool_call["args"]
-            )
-            outputs.append(
-                ToolMessage(
-                    content=json.dumps(tool_result),
-                    name=tool_call["name"],
-                    tool_call_id=tool_call["id"],
-                )
-            )
-        return {"messages": outputs}
-
-
 class LLMNode(BaseNode):
     def __init__(
         self,
@@ -158,6 +169,12 @@ class LLMNode(BaseNode):
         system_prompt: PromptTemplate = None,
     ):
         self.model = model
+
+        # if isinstance(system_prompt, PromptTemplate):
+        #     system_prompt = system_prompt.render()
+        print(type(system_prompt))
+        print(system_prompt)
+        exit()
         # if system_prompt is None:
         #     self.system_prompt = SystemMessage("你是一个乐于助人的助手。")
         # else:
@@ -165,8 +182,23 @@ class LLMNode(BaseNode):
         self.system_prompt = SystemMessage("你是一个乐于助人的助手。")
         print("system_prompt", type(system_prompt))
 
-    def run(self, state: AgentState):
+    def run(self, state: AgentState, config: RunnableConfig):
+        """Call the LLM powering our "agent".
+
+        This function prepares the prompt, initializes the model, and processes the response.
+
+        Args:
+            state (State): 当前对话的状态。
+            config (RunnableConfig): 模型运行配置。
+
+        Returns:
+            dict: A dictionary containing the model's response message.
+        """
+
+        logger.info(f"【调试】 [state] {state}")
+
         response = self.model.invoke([self.system_prompt] + state["messages"])
+
         return {"messages": [response]}
 
 
@@ -180,6 +212,11 @@ def should_continue(state: AgentState):
     # Otherwise if there is, we continue
     else:
         return "continue"
+
+
+def current_time():
+    # 返回当前时间
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 if __name__ == "__main__":
