@@ -71,7 +71,8 @@ ARG USER_HOME="/${USER_NAME}"
 # # 临时解决方案  --ignoreExternallyManagedEnvironment
 ADD . $USER_HOME/tmp
 ENV PYTHON_VENV_DIR=$USER_HOME/.venv
-ENV PIP_MIRROR="https://mirrors.ustc.edu.cn/pypi/simple"
+# ENV PIP_MIRROR="https://mirrors.ustc.edu.cn/pypi/simple"
+ENV PIP_MIRROR="https://mirrors.cloud.tencent.com/pypi/simple/"
 RUN set -x && \
     python3 -m venv ${PYTHON_VENV_DIR} --clear && \
     echo "source ${PYTHON_VENV_DIR}/bin/activate" >> $USER_HOME/.bashrc && \
@@ -79,7 +80,7 @@ RUN set -x && \
     $VENV_PYTHON -m pip install -i $PIP_MIRROR -U --upgrade pip setuptools wheel && \
     $VENV_PYTHON -m pip config set global.index-url $PIP_MIRROR && \
     [ -f $USER_HOME/tmp/requirements.txt ] && $VENV_PYTHON -m pip install -r ${USER_HOME}/tmp/requirements.txt || echo "requirements.txt not found, skip install" && \
-    sudo rm -rf $USER_HOME/tmp && \
+    rm -rf $USER_HOME/tmp && \
     # 清理缓存，缓存目录： - [Linux]: ~/.cache/pip and ~/.cache/pipenv  - [macOS]: ~/Library/Caches/pip and ~/.cache/pipenv  - [Windows]: %LocalAppData%/pip/Cache
     $VENV_PYTHON -m pip cache purge
 

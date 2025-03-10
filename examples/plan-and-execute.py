@@ -136,7 +136,7 @@ class ExecutorNode:
 
     def run(self, state: PlanExecute):
         plan = state["plan"]
-        plan_str = "\n".join(f"{i+1}. {step}" for i, step in enumerate(plan))
+        plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
         task = plan[0]
 
         task_formatted = f"""以下计划：
@@ -170,8 +170,9 @@ def should_end(state: PlanExecute):
 
 def main():
     base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:7b")
+    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
     llm = ChatOllama(base_url=base_url, model=model_name, temperature=0)
+    # llm.invoke([HumanMessage("你好")])
 
     tools = [BaiduSearchTool(max_results=10)]
     # tools = [TavilySearchResults(max_results=3)]
@@ -196,7 +197,7 @@ def main():
     # Add the execution step
     def execute_step(state: PlanExecute):
         plan = state["plan"]
-        plan_str = "\n".join(f"{i+1}. {step}" for i, step in enumerate(plan))
+        plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
         task = plan[0]
         task_formatted = f"""For the following plan:
     {plan_str}\n\nYou are tasked with executing step {1}, {task}."""

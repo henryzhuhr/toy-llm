@@ -3,11 +3,13 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile
-    image: toyllm:latest  # 构建后镜像的名称和标签
+    image: toyllm:latest  # 构建后镜像的名称和标签   
     environment:
       APP: toyllm
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
-      - default
+      - default  
     volumes:
       - "~/.ssh:/root/.ssh:ro" # 挂载宿主机的ssh配置文件，方便推拉代码（只读）
       - "/etc/localtime:/etc/localtime:ro" # 挂载宿主机时间到容器
