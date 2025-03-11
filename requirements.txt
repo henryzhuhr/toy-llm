@@ -44,6 +44,7 @@ faiss-cpu # faiss-gpu
 langgraph
 langsmith
 langchain_anthropic
+langfuse
 
 # -- onnx--
 # onnx>=1.15.0
