@@ -53,7 +53,7 @@ class BaiduSearchTool(BaseTool):  # type: ignore[override, override]
         query: str,
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
-        # logger.info(f"🔧 Tool [{self.name}] param: [query] {query}")
+        logger.info(f"🔧 Tool [{self.name}] param: [query] {query}")
         result = search(query, self.max_results)
         mock_results = [
             {

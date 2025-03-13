@@ -17,7 +17,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 from loguru import logger
 
-from modules.agent.react_agent.state import InputState, State
+from modules.agents.react_agent.state import InputState, State
 
 # from modules.tools.baidu_search import BaiduSearchTool
 print(END)

@@ -43,10 +43,10 @@ class AgentState(TypedDict):
     # add_messages is a reducer
     # See https://github.langchain.ac.cn/langgraph/concepts/low_level/#reducers
     messages: Annotated[Sequence[BaseMessage], add_messages]
+    intermediate_steps: int
 
 
 async def main():
-
     tools = [
         BaiduSearchTool(max_results=10),
         # TavilySearchResults(max_results=1),
@@ -57,7 +57,7 @@ async def main():
     logger.info(f"🤖 prompt: {prompt}")
 
     base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:7b")
+    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
     llm = ChatOllama(base_url=base_url, model=model_name)
     llm = llm.bind_tools(tools)
 
@@ -117,14 +117,17 @@ async def main():
     inputs = {
         "messages": [
             SystemMessage(
-                f"""
-                当前时间为{current_time()}。请使用中文回答。
-                如果你不清楚答案，或者不确定答案，请使用可用使用的工具进行回答，你可以使用如下工具 {[tool.name for tool in tools]}
-                """
+                # f"""
+                # 当前时间为{current_time()}。请使用中文回答。
+                # 如果你不清楚答案，或者不确定答案，请使用可用使用的工具进行回答，你可以使用如下工具 {[t.name for t in tools]}
+                # """
+                f"当前时间为{current_time()}。请使用中文回答。"
+                f"如果你不清楚答案，或者不确定答案，请使用可用使用的工具进行回答，你可以使用如下工具 {[t.name for t in tools]}"
             ),
             HumanMessage("2024年美国大选结果"),
             # HumanMessage("深圳天气如何"),
-        ]
+        ],
+        "intermediate_steps": 10,
     }
     for stream in graph.stream(inputs, stream_mode="values"):
         message: Union[BaseMessage, HumanMessage, AIMessage, ToolMessage, SystemMessage]

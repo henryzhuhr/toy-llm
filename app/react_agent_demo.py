@@ -1,17 +1,13 @@
 import asyncio
 import os
-from typing import List
 
-# from langchain.agents import AgentExecutor, create_react_agent
-from langchain_anthropic import ChatAnthropic
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain import hub
 from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import create_react_agent
 from loguru import logger
+
 
 from modules.prompt import agent_prompt
 from modules.tools.baidu_search import BaiduSearchTool
@@ -51,19 +47,21 @@ async def main():
     base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
     model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
     llm = ChatOllama(base_url=base_url, model=model_name)
-    llm = llm.bind_tools(tools, parallel_tool_calls=False )
-    logger.info(f"🤖 LLM 初始化成功. LLM 可用工具")
+    llm = llm.bind_tools(tools)
+    logger.info("🤖 LLM 初始化成功. LLM 可用工具")
 
     prompt = agent_prompt
 
     # Initialize memory to persist state between graph runs
     checkpointer = MemorySaver()
+    prompt = hub.pull("hwchase17/structured-chat-agent")
+    logger.info(f"🤖 prompt: {prompt}")
 
-    app = create_react_agent(llm, tools, checkpointer=checkpointer)
+    agent = create_react_agent(llm, tools, prompt=prompt, checkpointer=checkpointer)
 
     # agent: CompiledStateGraph = create_react_agent(llm, tools, prompt)
     try:
-        graph_img = app.get_graph().draw_mermaid_png()
+        graph_img = agent.get_graph().draw_mermaid_png()
         # 保存图片
         os.makedirs("tmp", exist_ok=True)
         with open("tmp/graph.png", "wb") as f:
@@ -86,7 +84,7 @@ async def main():
     # for message in messages:
     #     logger.info(f"🤖 message: [{message.type}] {message}")
 
-    final_state = await app.ainvoke(
+    final_state = await agent.ainvoke(
         {"messages": [{"role": "user", "content": "中国的国土面积"}]},
         config={"configurable": {"thread_id": 42}},
     )
