@@ -7,7 +7,7 @@ from langchain import hub
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
-from langfuse.callback import CallbackHandler
+# from langfuse.callback import CallbackHandler
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field

@@ -2,48 +2,45 @@
 https://github.com/xuwenhao/geektime-ai-course/blob/main/17_langchain_agent.ipynb
 """
 
-from langchain_ollama import ChatOllama, OllamaEmbeddings
+import os
+import time
 
-from langchain.agents import initialize_agent, Tool
+from langchain.agents import Tool, initialize_agent
+from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains.retrieval_qa.base import RetrievalQA
-from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import (
+    AIMessage,
     BaseMessage,
     HumanMessage,
-    AIMessage,
+    SystemMessage,
     ToolMessage,
 )
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import create_react_agent
+from pydantic import BaseModel
 
-MULTIPLE_CHOICE = """
-请针对 >>> 和 <<< 中间的用户问题，选择一个合适的工具去回答它的问题。只要用A、B、C的选项字母告诉我答案。
-如果你觉得都不合适，就选D。
->>>{question}<<<
-我们有的工具包括：
-A. 一个能够查询商品信息，为用户进行商品导购的工具
-B. 一个能够查询订单信息，获得最新的订单情况的工具
-C. 一个能够搜索商家的退换货政策、运费、物流时长、支付渠道、覆盖国家的工具
-D. 都不合适
-"""
 
-# 电商客服代理
-# E-commerce customer service agent
-# ecommerce_agent
+class ModelConfig(BaseModel):
+    base_url: str = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    model_name: str = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
 
 
 def main():
-    llm_model = ChatOllama(model="qwen2.5:7b")  # 初始化 ChatOllama 模型
+    model_config = ModelConfig()
+    llm_model = ChatOllama(  # 初始化 ChatOllama 模型
+        base_url=model_config.base_url, model=model_config.model_name
+    )
 
-    ecommerce_agent = EcommerceAgent()
+    ecommerce_agent = EcommerceAgent(model_config)
 
     memory = MemorySaver()
     agent_executor = create_react_agent(
         llm_model,
         tools=ecommerce_agent.tools,
-        # checkpointer=memory,
+        checkpointer=memory,
     )
 
     messages = [
@@ -51,6 +48,9 @@ def main():
         #     "user",
         #     "我有一张订单，订单号是 2022ABCDE，一直没有收到，能麻烦帮我查一下吗？",
         # )
+        SystemMessage(
+            f"你是一个智能客服助手（工号 {time.time()}），你需要帮助用户回答一些问题。"
+        ),
     ]
 
     for question in [
@@ -65,9 +65,9 @@ def main():
         "美国大选是怎么进行的",
         "刚才那个订单号是多少",
     ]:
-        messages.append(("user", question))
+        messages.append(HumanMessage(question))
         inputs = {"messages": messages}
-        
+
         """
         如前所述，此代理是无状态的。这意味着它不会记住之前的交互。
         为了给它提供记忆，我们需要传递一个检查点器。
@@ -76,7 +76,7 @@ def main():
         config = {"configurable": {"thread_id": "abc123"}}
         stream = agent_executor.stream(
             inputs,
-            # config,
+            config,
             stream_mode="values",
         )
         assistant: str = None
@@ -92,7 +92,7 @@ def main():
                 if message.tool_calls:
                     print("🤖🔧", message.tool_calls)
                     for tool_call in message.tool_calls:
-                        print(f" - [{tool_call["name"]}] {tool_call["args"]}")
+                        print(f" - [{tool_call['name']}] {tool_call['args']}")
                 else:
                     assistant = message  # .content
             else:
@@ -115,9 +115,9 @@ def main():
 
 # 电商客服机器人
 class EcommerceAgent:
-    def __init__(self):
+    def __init__(self, model_config: ModelConfig):
         # 示例使用
-        ecommerce_functions = EcommerceFunctions()
+        ecommerce_functions = EcommerceFunctions(model_config)
 
         # 创建了一个 Tool 对象的数组，把这三个函数分别封装在了三个 Tool 对象里面
         # 并且定义了描述，这个 description 就是告诉 AI，这个 Tool 是干什么用的，会根据描述做出选择
@@ -141,17 +141,23 @@ class EcommerceAgent:
 
 
 class FQATools:
-    def __init__(self, model="qwen2.5:3b", fqa_file="./data/ecommerce_faq.txt"):
+    def __init__(self, model_config: ModelConfig, fqa_file="./data/ecommerce_faq.txt"):
         # 通过 RetrievalQA 让Tool支持问答
         loader = TextLoader(fqa_file)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=10, chunk_overlap=0, separators=["\n\n"]  # 自定义切分
+            chunk_size=10,
+            chunk_overlap=0,
+            separators=["\n\n"],  # 自定义切分
         )
         texts = text_splitter.split_documents(documents)
-        embeddings = OllamaEmbeddings(model=model)
+        embeddings = OllamaEmbeddings(
+            base_url=model_config.base_url, model=model_config.model_name
+        )
         docsearch = FAISS.from_documents(texts, embeddings)
-        llm_model = ChatOllama(model=model)  # 初始化 ChatOllama 模型
+        llm_model = ChatOllama(  # 初始化 ChatOllama 模型
+            base_url=model_config.base_url, model=model_config.model_name
+        )
         self.qa = RetrievalQA.from_chain_type(
             llm=llm_model,
             retriever=docsearch.as_retriever(),  # 传入retriever
@@ -160,17 +166,13 @@ class FQATools:
 
 
 class EcommerceFunctions:
-    def __init__(
-        self, fqa_model="qwen2.5:3b", fqa_file="./data/ecommerce_faq.txt"
-    ):
+    def __init__(self, fqa_model="qwen2.5:3b", fqa_file="./data/ecommerce_faq.txt"):
         self.fqa_tools = FQATools(fqa_model, fqa_file)
 
     # 模拟问关于订单
     @staticmethod
     def search_order(input: str) -> str:
-        return (
-            "订单状态：已发货；发货日期：2023-09-15；预计送达时间：2023-09-18"
-        )
+        return "订单状态：已发货；发货日期：2023-09-15；预计送达时间：2023-09-18"
 
     # 模拟问关于推荐产品
     @staticmethod

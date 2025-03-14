@@ -5,7 +5,10 @@ from inspect import signature
 from typing import ClassVar, List, cast
 
 from langchain import hub
-from langchain.agents import create_react_agent
+from langchain.agents import AgentExecutor, BaseSingleActionAgent, create_react_agent
+from langchain.agents.format_scratchpad import format_log_to_str
+from langchain.agents.output_parsers import ReActJsonSingleInputOutputParser
+from langchain_community.agent_toolkits.load_tools import load_tools
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import PromptTemplate, SystemMessagePromptTemplate
@@ -69,6 +72,12 @@ def render_text_description(tools: list[BaseTool]) -> str:
         descriptions.append(description)
     return "\n".join(descriptions)
 
+class InputProcess(BaseSingleActionAgent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def process(self, message: AnyMessage) -> AnyMessage:
+        return message
 
 def main():
     tools = [BaiduSearchTool(max_results=5)]
@@ -80,9 +89,9 @@ def main():
     model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
 
     # Initialize the model with tool binding. Change the model or add more tools here.
-    llm = ChatOllama(base_url=base_url, model=model_name)
+    chat_model = ChatOllama(base_url=base_url, model=model_name)
 
-    # agent = create_react_agent(llm, tools, prompt)
+    # agent = create_react_agent(chat_model, tools, prompt)
 
     system_prompt_template = PromptTemplate.from_template(REACT_PROMPT_TEMPLATE)
     system_prompt = system_prompt_template.partial(
@@ -92,6 +101,23 @@ def main():
     )
     logger.info(f"system_prompt: [] {system_prompt}")
     # logger.info(f"system_prompt: [] {system_prompt.format(input='hi')}")
+
+    chat_model_with_stop = chat_model.bind(stop=["\nObservation"])
+    # agent:Union[BaseSingleActionAgent, BaseMultiActionAgent, Runnable] = (
+    agent = (
+        {
+            "input": lambda x: x["input"],
+            "agent_scratchpad": lambda x: format_log_to_str(x["intermediate_steps"]),
+        }
+        | system_prompt
+        | chat_model_with_stop
+        | ReActJsonSingleInputOutputParser()
+    )
+
+    # instantiate AgentExecutor
+    agent_executor = AgentExecutor(agent=agent, tools=[], verbose=True)
+
+    agent_executor.invoke({"input": "你是谁"})
 
 
 if __name__ == "__main__":

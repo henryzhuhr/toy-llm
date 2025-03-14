@@ -6,6 +6,7 @@ services:
     image: toy-llm:latest  # 构建后镜像的名称和标签   
     environment:
       APP: toy-llm
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

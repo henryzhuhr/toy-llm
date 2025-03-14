@@ -1,7 +1,9 @@
-from langchain.prompts import PromptTemplate
-from langchain_ollama import ChatOllama, OllamaEmbeddings
-from langchain_community.chains.llm_requests import LLMRequestsChain
+import os
+
 from langchain.chains.llm import LLMChain
+from langchain.prompts import PromptTemplate
+from langchain_community.chains.llm_requests import LLMRequestsChain
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 
 TEMPLATE = """在 >>> 和 <<< 之间是网页的返回的HTML内容。
 网页是实时金价的信息
@@ -18,7 +20,9 @@ Extracted:"""
 
 
 def main():
-    llm_model = ChatOllama(model="qwen2.5:7b")  # 初始化 ChatOllama 模型
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
+    llm_model = ChatOllama(base_url=base_url, model=model_name)  # 初始化 ChatOllama 模型
 
     prompt = PromptTemplate(
         input_variables=["requests_result"],

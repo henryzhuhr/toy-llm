@@ -8,9 +8,18 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "baidusearch>=1.0.3",
     "faiss-cpu>=1.10.0",
     "langchain>=0.3.20",
     "langchain-community>=0.3.19",
     "langchain-ollama>=0.2.3",
     "langgraph>=0.3.10",
+    "loguru>=0.7.3",
 ]
+
+[[tool.uv.index]]
+url = "https://mirrors.cloud.tencent.com/pypi/simple/"
+default = true
+
+[[tool.uv.index]]
+url = "https://mirrors.ustc.edu.cn/pypi/simple"
