@@ -3,9 +3,9 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile
-    image: toyllm:latest  # 构建后镜像的名称和标签   
+    image: toy-llm:latest  # 构建后镜像的名称和标签   
     environment:
-      APP: toyllm
+      APP: toy-llm
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -13,8 +13,8 @@ services:
     volumes:
       - "~/.ssh:/root/.ssh:ro" # 挂载宿主机的ssh配置文件，方便推拉代码（只读）
       - "/etc/localtime:/etc/localtime:ro" # 挂载宿主机时间到容器
-      - ".:/root/toyllm"
-    working_dir: /root/toyllm
+      - ".:/root/toy-llm"
+    working_dir: /root/toy-llm
     # sleep infinity 用于保持容器运行，否则 vscode 无法进入容器，建议写在 .devcontainer/docker-compose.yml 文件中
     command: sleep infinity
 
