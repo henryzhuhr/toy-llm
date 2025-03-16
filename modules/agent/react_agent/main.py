@@ -2,13 +2,22 @@ import datetime
 import os
 import time
 from inspect import signature
-from typing import ClassVar, List, cast
+from typing import Any, ClassVar, List, Tuple, Union, cast
 
 from langchain import hub
 from langchain.agents import AgentExecutor, BaseSingleActionAgent, create_react_agent
 from langchain.agents.format_scratchpad import format_log_to_str
 from langchain.agents.output_parsers import ReActJsonSingleInputOutputParser
 from langchain_community.agent_toolkits.load_tools import load_tools
+from langchain_core.agents import AgentAction, AgentFinish, AgentStep
+from langchain_core.callbacks import (
+    AsyncCallbackManagerForChainRun,
+    AsyncCallbackManagerForToolRun,
+    BaseCallbackManager,
+    CallbackManagerForChainRun,
+    CallbackManagerForToolRun,
+    Callbacks,
+)
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import PromptTemplate, SystemMessagePromptTemplate
@@ -20,8 +29,8 @@ from loguru import logger
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from modules.agents.react_agent._base import BaseAgent
-from modules.agents.react_agent.prompts import REACT_PROMPT_TEMPLATE
+from modules.agent.react_agent._base import BaseAgent
+from modules.agent.react_agent.prompts import REACT_PROMPT_TEMPLATE
 from modules.tools.baidu_search import BaiduSearchTool
 
 template = """Answer the following questions as best you can. You have access to the following tools:
@@ -72,12 +81,33 @@ def render_text_description(tools: list[BaseTool]) -> str:
         descriptions.append(description)
     return "\n".join(descriptions)
 
-class InputProcess(BaseSingleActionAgent):
+
+class CustomReActAgent(BaseSingleActionAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def process(self, message: AnyMessage) -> AnyMessage:
-        return message
+    @property
+    def input_keys(self) -> List[str]:
+        return ["input"]
+
+    def plan(
+        self,
+        intermediate_steps: List[Tuple[AgentAction, str]],
+        callbacks: Callbacks = None,
+        **kwargs: Any,
+    ) -> Union[AgentAction, AgentFinish]:
+        logger.error(f"intermediate_steps: {intermediate_steps}")
+        return AgentAction()
+
+    async def aplan(
+        self,
+        intermediate_steps: List[Tuple[AgentAction, str]],
+        callbacks: Callbacks = None,
+        **kwargs: Any,
+    ) -> Union[AgentAction, AgentFinish]:
+        logger.error("only for async")
+        return AgentAction()
+
 
 def main():
     tools = [BaiduSearchTool(max_results=5)]
@@ -113,7 +143,7 @@ def main():
         | chat_model_with_stop
         | ReActJsonSingleInputOutputParser()
     )
-
+    agent = CustomReActAgent()
     # instantiate AgentExecutor
     agent_executor = AgentExecutor(agent=agent, tools=[], verbose=True)
 

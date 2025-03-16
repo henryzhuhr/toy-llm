@@ -13,7 +13,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from modules.agents.react_agent._base import BaseAgent
+from modules.agent.react_agent._base import BaseAgent
 from modules.tools.baidu_search import BaiduSearchTool
 
 from .prompts import REACT_PROMPT_TEMPLATE

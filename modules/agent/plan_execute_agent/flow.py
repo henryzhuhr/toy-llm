@@ -13,7 +13,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from modules.agents.react_agent._base import BaseAgent
+from modules.agent.react_agent._base import BaseAgent
 from modules.tools.baidu_search import BaiduSearchTool
 
 PLANNER_PROMPT = """You are a task planning assistant. Given a task, create a detailed plan.
@@ -26,6 +26,7 @@ Create a plan with the following format:
 ...
 
 Plan:"""
+
 PLANNER_PROMPT_CN = """你是任务计划助手。给定一个任务，创建一个详细的计划。
 
 任务: {input}
@@ -167,7 +168,7 @@ class PlanningAgent(BaseAgent):
         )
 
         state.messages.append(system_message)
-        state.messages.append(user_message)
+        # state.messages.append(user_message)
 
         state = self.llm.__call__(state)
         return state
