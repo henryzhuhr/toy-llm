@@ -7,12 +7,13 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph.graph import CompiledGraph
 from loguru import logger
 from pydantic import ConfigDict
 
 from toy_agent._state import AgentState
-from toy_agent.agents._base import BaseNode
+from toy_agent.agent._base import BaseNode
 
 
 class Executor(BaseNode):

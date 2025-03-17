@@ -1,0 +1,68 @@
+import os
+from datetime import datetime
+from typing import List
+
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
+from langchain_core.tools.base import BaseTool
+from loguru import logger
+
+from toy_agent._state import AgentState, Plan
+from toy_agent.agent._base import BaseNode
+from toy_agent.prompt import PROMPTS
+
+
+class ReActAgent(BaseNode):
+    name: str = "ReActAgent"
+    llm: BaseChatModel = None
+    tools: List[BaseTool] = None
+
+    def __init__(self, llm: BaseChatModel, tools: List[BaseTool] = None):
+        super().__init__()
+        self.llm = llm
+        self.tools = tools or []
+
+        if tools:
+            self.llm = self.llm.bind_tools(tools)
+
+    async def __call__(self, state: AgentState, config: RunnableConfig) -> AgentState:
+        logger.debug(f"[{self.name}]  state: {state}")
+        logger.debug(f"[{self.name}] config: {config.keys()}")
+
+        return AgentState()
+
+        system_prompt = SystemMessage(
+            PROMPTS.DEFAULT_SYSTEMT_PROMPT.format(time=datetime.now())
+        )
+        human_prompt = HumanMessage(PROMPTS.PLAN_PROMPT)
+
+        messages = [system_prompt, human_prompt, HumanMessage(state["input"])]
+        logger.debug(f"[{self.name}] messages: {messages}")
+
+        structured_response = await self.llm.with_structured_output(
+            Plan,
+            method="json_schema",
+            include_raw=True,
+        ).ainvoke(messages)
+        logger.debug(f"[{self.name}] structured response: {structured_response}")
+
+        if structured_response.get("parsed"):
+            plan: Plan = structured_response["parsed"]
+            logger.info(
+                f"[{self.name}] 🤖{AIMessage('').type} plan steps: {os.linesep}{
+                    os.linesep.join(list(plan.steps))
+                }"
+            )
+        else:
+            # 解析失败
+            raw_reponse: AIMessage = structured_response.get("raw", None)
+            if raw_reponse:
+                pass  # TODO: 使用模型原始的输出自定义解析
+            else:
+                # 模型没有返回任何内容
+                logger.error("[ plan step ] No structured response found.")
+                plan: Plan = Plan(steps=[])
+
+        logger.debug(f"[ plan step ] Plan: {plan}")
+        return AgentState(plan=plan.steps)

@@ -6,8 +6,8 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from loguru import logger
 
 from toy_agent._state import AgentState, Plan
-from toy_agent.agents._base import BaseNode
-from toy_agent.prompts import PROMPTS
+from toy_agent.agent._base import BaseNode
+from toy_agent.prompt import PROMPTS
 
 
 class Planner(BaseNode):
@@ -41,7 +41,7 @@ class Planner(BaseNode):
             plan: Plan = structured_response["parsed"]
             logger.info(
                 f"[{self.name}] 🤖{AIMessage('').type} plan steps: {os.linesep}{
-                    os.linesep.join([s for s in plan.steps])
+                    os.linesep.join(list(plan.steps))
                 }"
             )
         else:

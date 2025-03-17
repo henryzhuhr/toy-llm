@@ -3,8 +3,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 
 from toy_agent._state import Act, AgentState, Response
-from toy_agent.agents._base import BaseNode
-from toy_agent.prompts import PROMPTS
+from toy_agent.agent._base import BaseNode
+from toy_agent.prompt import PROMPTS
 
 
 class Replanner(BaseNode):
