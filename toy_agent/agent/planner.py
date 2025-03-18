@@ -27,7 +27,8 @@ class Planner(BaseNode):
         )
         human_prompt = HumanMessage(PROMPTS.PLAN_PROMPT)
 
-        messages = [system_prompt, human_prompt, HumanMessage(state["input"])]
+        # messages = [system_prompt, human_prompt, HumanMessage(state["input"])]
+        messages = [system_prompt, human_prompt, HumanMessage(state.input)]
         logger.debug(f"[{self.name}] messages: {messages}")
 
         structured_response = await self.llm.with_structured_output(
@@ -55,4 +56,5 @@ class Planner(BaseNode):
                 plan: Plan = Plan(steps=[])
 
         logger.debug(f"[ plan step ] Plan: {plan}")
-        return AgentState(plan=plan.steps)
+        state.plan = plan.steps
+        return state

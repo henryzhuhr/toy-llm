@@ -47,9 +47,12 @@ class ReActAgent(BaseNode):
         logger.debug(f"[{self.name}]  state: {state}")
         logger.debug(f"[{self.name}] config: {config.keys()}")
 
-        plan: List[str] = state.get("plan", [])
+        plan = state.plan
         if not plan:  # Check if plan is empty
-            return AgentState(past_steps=[], response="No steps to execute in the plan")
+            state.response = "计划中没有要执行的步骤"
+            state.past_steps = []
+            state.is_last_step = True
+            return state
 
         plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
 
@@ -75,17 +78,17 @@ class ReActAgent(BaseNode):
 
         if needed:
             # 需要测一下，返回没有tool调用的情况
-            return AgentState(
-                messages=AIMessage(
+            state.messages.append(
+                AIMessage(
                     id=response.id,
                     # content="Sorry, need more steps to process this request.",
                     content="抱歉，需要更多步骤来处理此请求。",
                 )
             )
+            return state
 
-        return AgentState(
-            messages=[response]
-        )  # TODO: 是否更新 state，而不是返回新的 state
+        state.messages.append(response)
+        return state
 
     def _are_more_steps_needed(self, state: AgentState, response: AnyMessage) -> bool:
         has_tool_calls = isinstance(response, AIMessage) and response.tool_calls
@@ -97,8 +100,10 @@ class ReActAgent(BaseNode):
             if isinstance(response, AIMessage)
             else False
         )
-        remaining_steps = state.get("remaining_steps", None)
-        is_last_step = state.get("is_last_step", False)
+        remaining_steps = state.remaining_steps
+        is_last_step = state.is_last_step
+
+
         return (
             (remaining_steps is None and is_last_step and has_tool_calls)
             or (

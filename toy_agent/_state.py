@@ -9,14 +9,17 @@ from typing_extensions import TypedDict
 
 
 # class AgentState(BaseModel):
-class AgentState(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], add_messages]
-    is_last_step: IsLastStep
-    remaining_steps: RemainingSteps
+class AgentState(BaseModel):
+    messages: Annotated[List[BaseMessage], add_messages] = Field(default_factory=list)
+    is_last_step: IsLastStep = Field(default=False)
+    remaining_steps: RemainingSteps = Field(
+        default=None,  # determined by the user, why set default to 25?
+        description="Number of steps remaining",
+    )
 
-    input: str
-    plan: List[str] = []
-    past_steps: Annotated[List[Tuple], operator.add] = []
+    input: str = Field(description="Input from user")
+    plan: List[str] = Field(default_factory=list)
+    past_steps: Annotated[List[Tuple], operator.add] = Field(default_factory=list)
     response: str = None
 
 

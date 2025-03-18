@@ -28,7 +28,7 @@ class PlanAndExecutorFlow(BaseFlow):
         llm = ChatOllama(base_url=base_url, model=model_name)
 
         tools = [
-            TavilySearchResults(max_results=3),
+            # TavilySearchResults(max_results=3),
             BaiduSearchTool(max_results=3),
         ]
 
@@ -58,7 +58,7 @@ class PlanAndExecutorFlow(BaseFlow):
         # We now add a conditional edge
         # Define the function that determines whether to continue or not
         def should_continue(state: AgentState) -> Union[str, list]:
-            messages = state.get("messages")
+            messages = state.messages
             last_message = messages[-1]
             # If there is no function call, then we finish
             if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
@@ -96,7 +96,7 @@ class PlanAndExecutorFlow(BaseFlow):
         should_return_direct = react_agent.should_return_direct
 
         def route_tool_responses(state: AgentState):
-            for m in reversed(state.get("messages")):
+            for m in reversed(state.messages):
                 if not isinstance(m, ToolMessage):
                     break
                 if m.name in should_return_direct:
