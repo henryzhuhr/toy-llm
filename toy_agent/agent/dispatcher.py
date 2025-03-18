@@ -22,8 +22,8 @@ DEFAULT_DISPATCHER_PROMPT = """对于以下计划:
 你的任务是执行第一步, {task}."""  # 你的任务是执行 step {1}, {task}."""
 
 
-class Dispatcher(BaseNode):
-    name: str = "dispatcher"
+class ReActAgent(BaseNode):
+    name: str = "react_agent"
     dispatcher_prompt_template: str = Field(default=DEFAULT_DISPATCHER_PROMPT)
     llm: BaseChatModel = None
     tools: List[BaseTool] = None

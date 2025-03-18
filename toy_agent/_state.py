@@ -10,13 +10,14 @@ from typing_extensions import TypedDict
 
 # class AgentState(BaseModel):
 class AgentState(TypedDict):
-    input: str
     messages: Annotated[Sequence[BaseMessage], add_messages]
     is_last_step: IsLastStep
     remaining_steps: RemainingSteps
-    plan: List[str]
-    past_steps: Annotated[List[Tuple], operator.add]
-    response: str
+
+    input: str
+    plan: List[str] = []
+    past_steps: Annotated[List[Tuple], operator.add] = []
+    response: str = None
 
 
 class Plan(BaseModel):
