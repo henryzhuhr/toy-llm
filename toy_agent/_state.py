@@ -10,16 +10,18 @@ from typing_extensions import TypedDict
 
 # class AgentState(BaseModel):
 class AgentState(BaseModel):
-    messages: Annotated[List[BaseMessage], add_messages] = Field(default_factory=list)
-    is_last_step: IsLastStep = Field(default=False)
-    remaining_steps: RemainingSteps = Field(
-        default=None,  # determined by the user, why set default to 25?
-        description="Number of steps remaining",
-    )
+    # messages: Annotated[List[BaseMessage], add_messages] = Field(default_factory=list)
+    # is_last_step: IsLastStep = Field(default=False)
+    # remaining_steps: RemainingSteps = Field(
+    #     default=None,  # determined by the user, why set default to 25?
+    #     description="Number of steps remaining",
+    # )
 
     input: str = Field(description="Input from user")
+    # current_task: str = Field(default=None)
     plan: List[str] = Field(default_factory=list)
-    past_steps: Annotated[List[Tuple], operator.add] = Field(default_factory=list)
+    # past_steps: Annotated[List[Tuple], operator.add] = Field(default_factory=list)
+    past_steps: List[Tuple] = Field(default_factory=list)
     response: str = None
 
 

@@ -29,8 +29,7 @@ class Executor(BaseNode):
     async def __call__(self, state: AgentState, config) -> AgentState:
         logger.debug(f"[{self.name}]  state: {state}")
         logger.debug(f"[{self.name}] config: {config.keys()}")
-        logger.info(f"[ execute step ] State: {state}")
-        plan: List[str] = state.get("plan", [])
+        plan: List[str] = state.plan
         if not plan:  # Check if plan is empty
             return AgentState(past_steps=[], response="No steps to execute in the plan")
 
@@ -38,9 +37,7 @@ class Executor(BaseNode):
         task = plan[0]
         #     task_formatted = f"""For the following plan:
         # {plan_str}\n\nYou are tasked with executing step {1}, {task}."""
-        task_formatted = f"""对于以下计划:
-    {plan_str}
-    你的任务是执行 step {1}, {task}."""
+        task_formatted = f"""对于以下计划:\n{plan_str}\n你的任务是执行 {task}."""
 
         logger.info(f"[ execute step ] task_formatted: {task_formatted}")
 
@@ -59,15 +56,13 @@ class Executor(BaseNode):
             }
 
             logger.info(
-                f"[ execute step ] {MESSAGE_ICON.get(type(message), ' ')} [{message.type}] message: {message}"
+                f"[{self.name}] message {MESSAGE_ICON.get(type(message), ' ')} [{message.type}] message: {message}"
             )
             agent_response: AIMessage = message
-        # logger.info(f"[ execute step ] agent_response: {agent_response}")
+        # logger.info(f"[{self.name}] agent_response: {agent_response}")
 
-        past_steps = state.get("past_steps", []) + [(task, agent_response.content)]
-        logger.info(f"[ execute step ] past_steps: {past_steps}")
+        past_steps = state.past_steps + [(task, agent_response.content)]
+        logger.info(f"[{self.name}] past_steps: {past_steps}")
 
-        return AgentState(past_steps=past_steps)
-
-
-
+        state.past_steps = past_steps
+        return state

@@ -2,7 +2,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 
-from toy_agent._state import Act, AgentState, Response
+from toy_agent._state import Act, AgentState, Plan, Response
 from toy_agent.agent._base import BaseNode
 from toy_agent.prompt import PROMPTS
 
@@ -21,13 +21,14 @@ class Replanner(BaseNode):
 
         human_prompt = HumanMessage(
             PROMPTS.REPLAN_PROMPT_TEMPLATE.format(
-                input=state["input"],  # TODO:如果没有输出的情况
-                plan=state.get("plan", []),
-                past_steps=state.get("past_steps", []),
+                input=state.input,  # TODO:如果没有输出的情况
+                plan=state.past_steps + state.plan,
+                past_steps=state.past_steps,
             )
         )
 
-        messages = [human_prompt, HumanMessage(state["input"])]
+        # messages = [*state.messages, human_prompt]
+        messages = [human_prompt]
         logger.debug(f"[{self.name}] messages: {messages}")
 
         structured_response = await self.llm.with_structured_output(
@@ -41,13 +42,7 @@ class Replanner(BaseNode):
             act: Act = structured_response["parsed"]
             ai_response: AIMessage = structured_response.get("raw")
             if ai_response:
-                logger.debug(f"[ replan step ] 🤖 {ai_response.content}")
-            # plan: Plan = structured_response["parsed"]
-            # logger.info(
-            #     f"[{self.name}] 🤖{AIMessage('').type} plan steps: {os.linesep}{
-            #         os.linesep.join([s for s in plan.steps])
-            #     }"
-            # )
+                logger.debug(f"[{self.name}] 🤖 {ai_response.content}")
         else:
             # 解析失败
             raw_reponse: AIMessage = structured_response.get("raw", None)
@@ -57,9 +52,15 @@ class Replanner(BaseNode):
                 # 模型没有返回任何内容
                 logger.error("[ plan step ] No structured response found.")
                 act: Act = Act(action=Response(response="模型输出有问题"))
+        logger.debug(f"[{self.name}] act: {act}")
 
         # Handle proper Act instance
         if isinstance(act.action, Response):
-            return AgentState(response=act.action.response)
+            state.response = act.action.response
+        elif isinstance(act.action, Plan):
+            state.plan = act.action.steps
         else:
-            return AgentState(plan=act.action.steps)
+            state.response = "模型输出有问题"
+            # 如果模型输出不对，应该再 replan 一次
+        logger.debug(f"[{self.name}] state before return: {state}")
+        return state

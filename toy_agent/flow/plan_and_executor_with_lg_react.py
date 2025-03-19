@@ -34,28 +34,22 @@ class PlanAndExecuteWithLGReactFlow(BaseFlow):
 
         agent_executor = create_react_agent(llm, tools)
         executor = Executor(agent_executor)
-        # TODO: subgraph cannot be expanded, related issue
-        # - https://github.com/langchain-ai/langgraph/issues/2607
-        # workflow.add_node(executor.name, executor)
-        # workflow.add_node(
-        #     executor.name,
-        #     lambda state, config: Executor(agent_executor).__call__(state, config),
-        # )  # TODO: subgraph cannot be expanded
+        workflow.add_node(executor.name, executor)
 
-        async def execute_step(state: AgentState):
-            plan = state["plan"]
-            plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
-            task = plan[0]
-            task_formatted = f"""For the following plan:
-        {plan_str}\n\nYou are tasked with executing step {1}, {task}."""
-            agent_response = await agent_executor.ainvoke(
-                {"messages": [("user", task_formatted)]}
-            )
-            return {
-                "past_steps": [(task, agent_response["messages"][-1].content)],
-            }
+        # async def execute_step(state: AgentState):
+        #     plan = state.plan
+        #     plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
+        #     task = plan[0]
+        #     task_formatted = f"""For the following plan:
+        # {plan_str}\n\nYou are tasked with executing step {1}, {task}."""
+        #     agent_response = await agent_executor.ainvoke(
+        #         {"messages": [("user", task_formatted)]}
+        #     )
+        #     return {
+        #         "past_steps": [(task, agent_response["messages"][-1].content)],
+        #     }
 
-        workflow.add_node(executor.name, execute_step)
+        # workflow.add_node(executor.name, execute_step)
 
         replanner = Replanner(llm)
         workflow.add_node(replanner.name, replanner)
@@ -67,8 +61,7 @@ class PlanAndExecuteWithLGReactFlow(BaseFlow):
 
         # --- add conditional edges ---
         def should_end(state: AgentState):
-            # if state.response:
-            if "response" in state and state["response"]:
+            if state.response:
                 return END
             else:
                 return executor.name
@@ -81,7 +74,7 @@ class PlanAndExecuteWithLGReactFlow(BaseFlow):
         )
 
         compiled_state_graph = workflow.compile(
-            debug=True,
+            debug=False,
             name="plan_and_execute_agent",
         )
 

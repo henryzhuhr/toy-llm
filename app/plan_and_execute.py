@@ -15,16 +15,17 @@ _set_env("TAVILY_API_KEY")
 
 async def main():
     graph = FlowFactory.PLAN_AND_EXECUTOR_WITH_LG_REACT.create()().build_workflow()
-    graph = FlowFactory.PLAN_AND_EXECUTOR.create()().build_workflow()
+    # graph = FlowFactory.PLAN_AND_EXECUTOR.create()().build_workflow()
 
     # return
 
-    config = {"recursion_limit": 10, "callbacks": []}
+    config = {"recursion_limit": 50, "callbacks": []}
     inputs = {"input": "2024年澳大利亚公开赛男单冠军的家乡是哪里？"}
     async for event in graph.astream(inputs, config=config):
         for k, v in event.items():
             if k != "__end__":
-                print(f"🤖 [外部输出] [{k}] {v}")
+                # print(f"🤖 [外部输出] [{k}] {v}")
+                pass
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from langgraph.prebuilt.tool_node import ToolNode
 from loguru import logger
 
 from modules.tools.baidu_search import BaiduSearchTool
-from toy_agent import AgentState, Executor, Planner, Replanner
+from toy_agent import AgentState, Planner, Processor, Replanner
 from toy_agent.agent.dispatcher import ReActAgent
 from toy_agent.flow._base import BaseFlow
 
@@ -24,7 +24,7 @@ class PlanAndExecutorFlow(BaseFlow):
     def build_workflow(self):  # noqa: C901
         workflow = StateGraph(AgentState)
         base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-        model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:1.5b")
+        model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
         llm = ChatOllama(base_url=base_url, model=model_name)
 
         tools = [
@@ -40,12 +40,20 @@ class PlanAndExecutorFlow(BaseFlow):
         react_agent = ReActAgent(llm, tools)
         react_agent_start = "react_agent_start"
         react_agent_end = "react_agent_end"
-        workflow.add_node(react_agent_start, lambda state: state)
+
+        def react_agent_start_call(state: AgentState):
+            logger.error(f"react_agent_start_call: {state}")
+            return state
+
+        workflow.add_node(react_agent_start, react_agent_start_call)
         workflow.add_node(react_agent.name, react_agent)
         workflow.add_node(react_agent_end, lambda state: state)
 
         tool_node = ToolNode(tools)
         workflow.add_node(tool_node.name, tool_node)
+
+        processor_node = Processor()
+        workflow.add_node(processor_node.name, processor_node)
 
         replanner = Replanner(llm)
         workflow.add_node(replanner.name, replanner)
@@ -114,11 +122,10 @@ class PlanAndExecutorFlow(BaseFlow):
             workflow.add_edge(tool_node.name, react_agent.name)
 
         def should_replan_end(state: AgentState):
-            # if state.response:
-            if "response" in state and state["response"]:
+            if state.response:
                 return END
             else:
-                return react_agent.name
+                return react_agent_start
 
         workflow.add_conditional_edges(
             replanner.name,
@@ -127,11 +134,12 @@ class PlanAndExecutorFlow(BaseFlow):
             [react_agent_start, END],
         )
 
-        workflow.add_edge(react_agent_end, replanner.name)
+        workflow.add_edge(react_agent_end, processor_node.name)
+        workflow.add_edge(processor_node.name, replanner.name)
 
         # --- compile ---
         compiled_state_graph = workflow.compile(
-            debug=True,
+            debug=False,
             name="plan_and_execute_agent_test",
         )
 
