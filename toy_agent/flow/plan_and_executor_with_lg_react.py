@@ -34,9 +34,11 @@ class PlanAndExecuteWithLGReactFlow(BaseFlow):
 
         agent_executor = create_react_agent(llm, tools)
         executor = Executor(agent_executor)
-        workflow.add_node(executor.name, executor)
+        workflow.add_node(
+            executor.name, lambda state, config: executor.__call__(state, config)
+        )
 
-        # async def execute_step(state: AgentState):
+        # def execute_step(state: AgentState):
         #     plan = state.plan
         #     plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
         #     task = plan[0]

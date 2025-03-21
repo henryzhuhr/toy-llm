@@ -17,7 +17,7 @@ async def main():
     graph = FlowFactory.PLAN_AND_EXECUTOR_WITH_LG_REACT.create()().build_workflow()
     # graph = FlowFactory.PLAN_AND_EXECUTOR.create()().build_workflow()
 
-    # return
+    return
 
     config = {"recursion_limit": 50, "callbacks": []}
     inputs = {"input": "2024年澳大利亚公开赛男单冠军的家乡是哪里？"}

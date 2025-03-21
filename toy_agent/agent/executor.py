@@ -26,9 +26,10 @@ class Executor(BaseNode):
         super().__init__()
         self.agent_executor = agent_executor
 
-    async def __call__(self, state: AgentState, config) -> AgentState:
-        logger.debug(f"[{self.name}]  state: {state}")
-        logger.debug(f"[{self.name}] config: {config.keys()}")
+    @staticmethod
+    async def __call__(state: AgentState, config) -> AgentState:
+        logger.debug(f"[{Executor.name}]  state: {state}")
+        logger.debug(f"[{Executor.name}] config: {config.keys()}")
         plan: List[str] = state.plan
         if not plan:  # Check if plan is empty
             return AgentState(past_steps=[], response="No steps to execute in the plan")
@@ -45,7 +46,7 @@ class Executor(BaseNode):
         #     {"messages": [HumanMessage(task_formatted)]}
         # )
         inputs = {"messages": [HumanMessage(task_formatted)]}
-        for stream in self.agent_executor.stream(inputs, stream_mode="values"):
+        for stream in Executor.agent_executor.stream(inputs, stream_mode="values"):
             message: AnyMessage = stream["messages"][-1]
 
             MESSAGE_ICON = {
@@ -56,13 +57,13 @@ class Executor(BaseNode):
             }
 
             logger.info(
-                f"[{self.name}] message {MESSAGE_ICON.get(type(message), ' ')} [{message.type}] message: {message}"
+                f"[{Executor.name}] message {MESSAGE_ICON.get(type(message), ' ')} [{message.type}] message: {message}"
             )
             agent_response: AIMessage = message
         # logger.info(f"[{self.name}] agent_response: {agent_response}")
 
         past_steps = state.past_steps + [(task, agent_response.content)]
-        logger.info(f"[{self.name}] past_steps: {past_steps}")
+        logger.info(f"[{Executor.name}] past_steps: {past_steps}")
 
         state.past_steps = past_steps
         return state

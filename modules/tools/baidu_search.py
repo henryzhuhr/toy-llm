@@ -33,7 +33,7 @@ class BaiduSearchTool(BaseTool):  # type: ignore[override, override]
         "输入应该是搜索查询。"
     )
     args_schema: Type[BaseModel] = BaiduSearchInput
-    return_direct: bool = True
+    return_direct: bool = False # 查询结果应该给模型总结
 
     # 可选参数
     max_results: int = 5  # 最大结果数
