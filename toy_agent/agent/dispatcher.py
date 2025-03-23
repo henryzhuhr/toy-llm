@@ -14,7 +14,7 @@ from langgraph.graph.graph import CompiledGraph
 from loguru import logger
 from pydantic import ConfigDict, Field
 
-from toy_agent._state import AgentState
+from toy_agent._state import PlanAndExecuteAgentState
 from toy_agent.agent._base import BaseNode
 
 DEFAULT_DISPATCHER_PROMPT = """对于以下计划:
@@ -43,7 +43,9 @@ class ReActAgent(BaseNode):
         # our graph needs to check if these were called
         self.should_return_direct = {t.name for t in tools if t.return_direct}
 
-    async def __call__(self, state: AgentState, config: RunnableConfig) -> AgentState:
+    async def __call__(
+        self, state: PlanAndExecuteAgentState, config: RunnableConfig
+    ) -> PlanAndExecuteAgentState:
         logger.debug(f"[{self.name}] [state] {state}")
         logger.debug(f"[{self.name}] [config] {config.keys()}")
 
@@ -91,7 +93,9 @@ class ReActAgent(BaseNode):
         state.messages.append(response)
         return state
 
-    def _are_more_steps_needed(self, state: AgentState, response: AnyMessage) -> bool:
+    def _are_more_steps_needed(
+        self, state: PlanAndExecuteAgentState, response: AnyMessage
+    ) -> bool:
         has_tool_calls = isinstance(response, AIMessage) and response.tool_calls
         all_tools_return_direct = (
             all(

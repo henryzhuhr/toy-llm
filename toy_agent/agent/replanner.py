@@ -2,7 +2,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 
-from toy_agent._state import Act, AgentState, Plan, Response
+from toy_agent._state import Act, Plan, PlanAndExecuteAgentState, Response
 from toy_agent.agent._base import BaseNode
 from toy_agent.prompt import PROMPTS
 
@@ -15,15 +15,21 @@ class Replanner(BaseNode):
         super().__init__()
         self.llm = llm
 
-    async def __call__(self, state: AgentState, config) -> AgentState:
+    async def __call__(
+        self, state: PlanAndExecuteAgentState, config
+    ) -> PlanAndExecuteAgentState:
         logger.debug(f"[{self.name}]  state: {state}")
         logger.debug(f"[{self.name}] config: {config.keys()}")
 
+        past_steps_str = "\n".join(
+            f"- 步骤“{step[0]}”的结果为：{step[1]}"
+            for i, step in enumerate(state.past_steps)
+        )
         human_prompt = HumanMessage(
             PROMPTS.REPLAN_PROMPT_TEMPLATE.format(
                 input=state.input,  # TODO:如果没有输出的情况
                 plan=state.past_steps + state.plan,
-                past_steps=state.past_steps,
+                past_steps=past_steps_str,
             )
         )
 

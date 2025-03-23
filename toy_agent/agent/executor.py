@@ -12,7 +12,7 @@ from langgraph.graph.graph import CompiledGraph
 from loguru import logger
 from pydantic import ConfigDict
 
-from toy_agent._state import AgentState
+from toy_agent._state import PlanAndExecuteAgentState
 from toy_agent.agent._base import BaseNode
 
 
@@ -26,13 +26,16 @@ class Executor(BaseNode):
         super().__init__()
         self.agent_executor = agent_executor
 
-    @staticmethod
-    async def __call__(state: AgentState, config) -> AgentState:
+    async def __call__(
+        self, state: PlanAndExecuteAgentState, config
+    ) -> PlanAndExecuteAgentState:
         logger.debug(f"[{Executor.name}]  state: {state}")
         logger.debug(f"[{Executor.name}] config: {config.keys()}")
         plan: List[str] = state.plan
         if not plan:  # Check if plan is empty
-            return AgentState(past_steps=[], response="No steps to execute in the plan")
+            return PlanAndExecuteAgentState(
+                past_steps=[], response="No steps to execute in the plan"
+            )
 
         plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
         task = plan[0]

@@ -5,7 +5,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from loguru import logger
 
-from toy_agent._state import AgentState, Plan
+from toy_agent._state import Plan, PlanAndExecuteAgentState
 from toy_agent.agent._base import BaseNode
 from toy_agent.prompt import PROMPTS
 
@@ -18,17 +18,18 @@ class Planner(BaseNode):
         super().__init__()
         self.llm = llm
 
-    async def __call__(self, state: AgentState, config) -> AgentState:
+    async def __call__(
+        self, state: PlanAndExecuteAgentState, config
+    ) -> PlanAndExecuteAgentState:
         logger.debug(f"[{self.name}]  state: {state}")
         logger.debug(f"[{self.name}] config: {config.keys()}")
 
         system_prompt = SystemMessage(
             PROMPTS.DEFAULT_SYSTEMT_PROMPT.format(time=datetime.now())
         )
-        human_prompt = HumanMessage(PROMPTS.PLAN_PROMPT)
+        human_prompt = HumanMessage(PROMPTS.PLAN_PROMPT.format(input=state.input))
 
-        # messages = [system_prompt, human_prompt, HumanMessage(state["input"])]
-        messages = [system_prompt, human_prompt, HumanMessage(state.input)]
+        messages = [system_prompt, human_prompt]
         logger.debug(f"[{self.name}] messages: {messages}")
 
         structured_response = await self.llm.with_structured_output(
@@ -40,7 +41,7 @@ class Planner(BaseNode):
 
         if structured_response.get("parsed"):
             plan: Plan = structured_response["parsed"]
-            logger.info(
+            logger.debug(
                 f"[{self.name}] 🤖{AIMessage('').type} plan steps: {os.linesep}{
                     os.linesep.join(list(plan.steps))
                 }"
@@ -52,9 +53,9 @@ class Planner(BaseNode):
                 pass  # TODO: 使用模型原始的输出自定义解析
             else:
                 # 模型没有返回任何内容
-                logger.error("[ plan step ] No structured response found.")
+                logger.error("[{self.name}] No structured response found.")
                 plan: Plan = Plan(steps=[])
 
-        logger.debug(f"[ plan step ] Plan: {plan}")
+        logger.debug(f"[{self.name}] Plan: {plan}")
         state.plan = plan.steps
         return state
