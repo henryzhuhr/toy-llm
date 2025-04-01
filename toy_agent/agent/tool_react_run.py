@@ -35,6 +35,9 @@ class ToolReActExecutor(BaseNode):
             # logger.debug(f"[{graph.name}] config: {config}")
 
             plan = state.plan or []
+            if len(plan) == 0:
+                logger.warning(f"[{graph.name}] No plan found.")
+                return state
 
             plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
 

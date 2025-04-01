@@ -24,7 +24,7 @@ from toy_agent.tools.baidu_search import BaiduSearchTool
 
 async def main():
     base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:14b")
+    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
     llm = ChatOllama(base_url=base_url, model=model_name)
 
     tools = [
@@ -49,8 +49,8 @@ async def main():
     # return
     config = {"recursion_limit": 50}
     start_state = PlanAndExecuteAgentState(
-        # messages=[HumanMessage("中国的国土面积")],
-        input="武汉大学的第一任校长是哪里人",
+        # input="武汉大学的第一任校长是哪里人",
+        input="联合国安理会最近一次会议讨论了什么议题",
     )
     async for event in app.astream(start_state, config=config):
         for k, v in event.items():

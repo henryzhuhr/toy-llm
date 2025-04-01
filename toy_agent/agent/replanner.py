@@ -28,13 +28,16 @@ class Replanner(BaseNode):
         human_prompt = HumanMessage(
             PROMPTS.REPLAN_PROMPT_TEMPLATE.format(
                 input=state.input,  # TODO:如果没有输出的情况
-                plan=state.past_steps + state.plan,
+                plan=[p[0] for p in state.past_steps] + state.plan,
                 past_steps=past_steps_str,
             )
         )
+        finished_prompt = HumanMessage(
+            "你是否已经确定了答案，如果确定了请尽快呢返回给用户"
+        )
 
         # messages = [*state.messages, human_prompt]
-        messages = [human_prompt]
+        messages = [human_prompt, finished_prompt]
         logger.debug(f"[{self.name}] messages: {messages}")
 
         structured_response = await self.llm.with_structured_output(
