@@ -116,6 +116,9 @@ RUN set -x && \
     rm -rf $(uv cache dir) && \
     rm -rf $USER_HOME/tmp
 
+# 网速慢可以手动执行
+# RUN command -v playwright >/dev/null 2>&1 && playwright install-deps && playwright install
+
 # 提升虚拟环境 python 的优先级
 ENV PATH=${VIRTUAL_ENV}/bin:$PATH
 ENV VIRTUAL_ENV_DISABLE_PROMPT=1
