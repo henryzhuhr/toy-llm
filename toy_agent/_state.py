@@ -6,12 +6,11 @@ from langgraph.managed import IsLastStep, RemainingSteps
 from pydantic import BaseModel, Field
 
 
-
-
 class BaseAgentState(BaseModel):
     """Base class for agent state."""
-    
+
     pass
+
 
 class ToolCallReActAgentState(BaseModel):
     """The state of the agent."""
@@ -22,7 +21,7 @@ class ToolCallReActAgentState(BaseModel):
 
     remaining_steps: RemainingSteps = Field(default=50)
 
-    
+
 class PlannerAgentState(BaseAgentState):
     input: str = Field(description="Input from user")
     # current_task: str = Field(default=None)

@@ -25,7 +25,7 @@ from pydantic import BaseModel
 
 class ModelConfig(BaseModel):
     base_url: str = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-    model_name: str = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
+    model_name: str = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:1.5b")
 
 
 def main():

@@ -37,10 +37,11 @@ async def main():
     try:
         os.makedirs(save_dir := "tmp", exist_ok=True)
         graph = app.get_graph(xray=True)
+        graph = app.get_graph()
         graph_mermaid = graph.draw_mermaid()  # noqa: F841
         with open(f"{save_dir}/{app.name}.md", "wb") as f:
             f.write(f"{datetime.now()}\n```mermaid\n{graph_mermaid}\n```".encode())
-        # print(graph_mermaid)
+        print(graph_mermaid)
         # graph_img = graph.draw_mermaid_png()
         # with open(f"{save_dir}/{app.name}.png", "wb") as f:
         #     f.write(graph_img)
