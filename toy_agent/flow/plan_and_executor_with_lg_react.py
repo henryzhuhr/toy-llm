@@ -5,8 +5,8 @@ from langchain_ollama import ChatOllama
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import create_react_agent
 from loguru import logger
-
 from modules.tools.baidu_search import BaiduSearchTool
+
 from toy_agent import AgentState, Executor, Planner, Replanner
 from toy_agent.flow._base import BaseFlow
 

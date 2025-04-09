@@ -1,4 +1,3 @@
-from collections import Counter
 from typing import List, Union
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -9,21 +8,20 @@ from langchain_core.messages import (
 from langchain_core.tools.base import BaseTool
 from langchain_ollama import ChatOllama
 from langgraph.graph import END, START, StateGraph
-from langgraph.graph.state import CompiledStateGraph
 
 # from langgraph.prebuilt import create_react_agent
 from langgraph.prebuilt.tool_node import ToolNode
 from loguru import logger
-from pydantic import ConfigDict
 
-from toy_agent._state import PlanAndExecuteAgentState
-from toy_agent.agent.tool_react import ToolCallReActAgent, ToolCallReActAgentState
-from toy_agent.agent.tool_react_run import ToolReActExecutor
+from toy_agent.agent.tool_react import (
+    ReActAgent,
+    ReActAgentState,
+)
 from toy_agent.flow._base import BaseFlow
 
 
-class ToolCallReActAgentFlow(BaseFlow):
-    name: str = "tool_call_ReAct_agent"
+class ReActAgentFlow(BaseFlow):
+    name: str = "ReAct_agent"
 
     llm: Union[BaseChatModel, ChatOllama] = None
     tools: List[BaseTool] = None
@@ -43,10 +41,10 @@ class ToolCallReActAgentFlow(BaseFlow):
             self.llm = self.llm.bind_tools(tools)
 
     def build_workflow(self, **kwargs):
-        workflow = StateGraph(ToolCallReActAgentState)
+        workflow = StateGraph(ReActAgentState)
 
         # --- Add nodes ---
-        react_agent_node = ToolCallReActAgent(self.llm, self.tools)
+        react_agent_node = ReActAgent(self.llm, self.tools)
         workflow.add_node(react_agent_node.name, react_agent_node)
 
         tool_node = ToolNode(self.tools)
@@ -56,7 +54,7 @@ class ToolCallReActAgentFlow(BaseFlow):
         workflow.add_edge(START, react_agent_node.name)
 
         # We now add a conditional edge
-        def should_continue(state: ToolCallReActAgentState) -> Union[str, list]:
+        def should_continue(state: ReActAgentState) -> Union[str, list]:
             last_message = state.messages[-1]
             logger.debug(
                 f"[should_continue] last_message: [{isinstance(last_message, AIMessage) and last_message.tool_calls}]"
@@ -76,7 +74,7 @@ class ToolCallReActAgentFlow(BaseFlow):
 
         should_return_direct = {t.name for t in self.tools if t.return_direct}
 
-        def route_tool_responses(state: ToolCallReActAgentState):
+        def route_tool_responses(state: ReActAgentState):
             for m in reversed(state.messages):
                 if not isinstance(m, ToolMessage):
                     break

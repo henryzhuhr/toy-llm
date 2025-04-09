@@ -1,39 +1,30 @@
-import os
-import time
-from collections import Counter
-from typing import List, Literal, Union
+from typing import List, Union
 
-from langchain_community.tools.tavily_search import TavilySearchResults
+# from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import (
-    AIMessage,
-    ToolMessage,
-)
+
+# from langchain_core.messages import (
+#     AIMessage,
+#     ToolMessage,
+# )
 from langchain_core.tools.base import BaseTool
 from langchain_ollama import ChatOllama
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-
-# from langgraph.prebuilt import create_react_agent
-from langgraph.prebuilt.tool_node import ToolNode
 from loguru import logger
 
 from toy_agent._state import PlanAndExecuteAgentState
-from toy_agent.agent.dispatcher import ReActAgent
 from toy_agent.agent.planner import Planner
-from toy_agent.agent.processor import Processor
 from toy_agent.agent.replanner import Replanner
-from toy_agent.agent.tool_react import ToolCallReActAgent, ToolCallReActAgentState
-from toy_agent.agent.tool_react_run import ToolReActExecutor
-from toy_agent.flow import tool_react
+from toy_agent.agent.tool_react import ReActExecutor
 from toy_agent.flow._base import BaseFlow
-from toy_agent.flow.tool_react import ToolCallReActAgentFlow
+from toy_agent.flow.react import ReActAgentFlow
 
 
 class PlanAndExecutorFlow(BaseFlow):
     name: str = "plan_and_execute_agent"
 
-    llm: Union[BaseChatModel, ChatOllama] = None
+    llm: Union[ChatOllama, BaseChatModel] = None
     tools: List[BaseTool] = None
     tool_names: List[str] = None
 
@@ -60,8 +51,8 @@ class PlanAndExecutorFlow(BaseFlow):
         workflow.add_node(planner.name, planner)
         workflow.set_entry_point(planner.name)
 
-        tool_react_agent = ToolCallReActAgentFlow(llm, tools).build_workflow()
-        tool_react_executor = ToolReActExecutor(tool_react_agent)
+        tool_react_agent = ReActAgentFlow(llm, tools).build_workflow()
+        tool_react_executor = ReActExecutor(tool_react_agent)
         workflow.add_node(
             tool_react_agent.name,
             tool_react_executor.get_arun(),

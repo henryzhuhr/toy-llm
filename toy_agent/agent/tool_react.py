@@ -3,19 +3,23 @@ from typing import List
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
+    AnyMessage,
     BaseMessage,
     HumanMessage,
+    SystemMessage,
     ToolMessage,
 )
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools.base import BaseTool
+from langgraph.graph.graph import CompiledGraph
 from langgraph.graph.message import add_messages
+from langgraph.graph.state import CompiledStateGraph
 from langgraph.managed import IsLastStep, RemainingSteps
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated
 
-from toy_agent._state import ToolCallReActAgentState
+from toy_agent._state import PlanAndExecuteAgentState, ReActAgentState
 from toy_agent.agent._base import BaseNode
 
 template = """Answer the following questions as best you can. You have access to the following tools:
@@ -56,8 +60,8 @@ Begin!
 Question: {input}"""
 
 
-class ToolCallReActAgent(BaseNode):
-    name: str = "ToolCallReActAgent"
+class ReActAgent(BaseNode):
+    name: str = "ReActAgent"
 
     llm: BaseChatModel = None
     tools: List[BaseTool] = None
@@ -71,8 +75,8 @@ class ToolCallReActAgent(BaseNode):
             self.llm = self.llm.bind_tools(tools)
 
     async def __call__(
-        self, state: ToolCallReActAgentState, config: RunnableConfig
-    ) -> ToolCallReActAgentState:
+        self, state: ReActAgentState, config: RunnableConfig
+    ) -> ReActAgentState:
         logger.debug(f"[{self.name}]  state: {state}")
         logger.debug(f"[{self.name}] config: {config.keys()}")
 
@@ -127,7 +131,7 @@ class ToolCallReActAgent(BaseNode):
         return state
 
     def _are_more_steps_needed(
-        self, state: ToolCallReActAgentState, response: BaseMessage
+        self, state: ReActAgentState, response: BaseMessage
     ) -> bool:
         has_tool_calls = isinstance(response, AIMessage) and response.tool_calls
         should_return_direct = {t.name for t in self.tools if t.return_direct}
@@ -158,3 +162,46 @@ class ToolCallReActAgent(BaseNode):
             )
             or (remaining_steps is not None and remaining_steps < 2 and has_tool_calls)
         )
+
+
+class ReActExecutor(BaseNode):
+    name: str = "ReActExecutor"
+
+    graph: CompiledGraph = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __init__(self, graph: CompiledGraph):
+        super().__init__()
+        self.graph = graph
+        self.name = self.graph.name
+
+    @staticmethod
+    def inject_variables(graph: CompiledStateGraph):
+        async def wrapper(state: PlanAndExecuteAgentState, config):
+            logger.debug(f"[{graph.name}]  state: {state}")
+
+            plan = state.plan or []
+            if len(plan) == 0:
+                logger.warning(f"[{graph.name}] No plan found.")
+                return state
+
+            plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
+
+            task = plan[0]
+            task_formatted = f"""For the following plan:
+        {plan_str}\n\nYou are tasked with executing step {1}, {task}."""
+
+            task_formatted = f"""你的任务是执行：{task}。"""
+            agent_response = await graph.ainvoke(
+                {"messages": [HumanMessage(task_formatted)]}
+            )
+            state.past_steps = [(task, agent_response["messages"][-1].content)]
+            return state
+
+        return wrapper
+
+    def get_arun(self):
+        """
+        调用对象：运行 tool_react_agent 的逻辑。
+        """
+        return self.inject_variables(self.graph)

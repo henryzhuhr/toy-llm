@@ -68,7 +68,9 @@ RUN set -x && \
     git clone https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git --depth 1 && \
     cd ohmyzsh/tools && \
     REMOTE=https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git sh install.sh && \
-    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-/root/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
+    # git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-/root/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
+    # 使用 gitee 同步仓库
+    git clone https://gitee.com/henryzhuhr/zsh-autosuggestions.git ${ZSH_CUSTOM:-/root/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
     echo "ZSH_THEME='candy'" >> ~/.zshrc && \
     echo "plugins=(macos dotenv git cp python bundler rake rbenv ruby zsh-autosuggestions)" >> ~/.zshrc && \
     echo "ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#00BFFF,bg=gray,bold,underline'" >> ~/.zshrc && \
@@ -106,15 +108,19 @@ ENV VIRTUAL_ENV=$USER_HOME/.venv
 
 ADD . $USER_HOME/tmp
 ENV UV_DEFAULT_INDEX="https://mirrors.cloud.tencent.com/pypi/simple/"
-ENV UV_INDEX="https://mirrors.ustc.edu.cn/pypi/simple"
+# ENV UV_INDEX="https://mirrors.ustc.edu.cn/pypi/simple"
 RUN set -x && \
     uv venv $VIRTUAL_ENV && \
     echo "source ${VIRTUAL_ENV}/bin/activate" >> $USER_HOME/.bashrc && \
     VENV_PYTHON=${VIRTUAL_ENV}/bin/python3 && \
-    [ -f $USER_HOME/tmp/pyproject.toml ] && uv sync --active --directory $USER_HOME/tmp || \
-    ([ -f $USER_HOME/tmp/requirements.txt ] && uv add --active -r ${USER_HOME}/tmp/requirements.txt) && \
+    if [ -f "$USER_HOME/tmp/pyproject.toml" ]; then { uv sync --active --directory $USER_HOME/tmp; } fi && \
     rm -rf $(uv cache dir) && \
-    rm -rf $USER_HOME/tmp
+    rm -rf $USER_HOME/tmp && \
+    # 在 uv 没有支持全局变量前，临时加入 history 文件
+    echo ": $(date +%s):0;uv add  --active" >> $USER_HOME/.zsh_history && \
+    echo ": $(date +%s):0;uv run  --active" >> $USER_HOME/.zsh_history && \
+    echo ": $(date +%s):0;uv sync --active" >> $USER_HOME/.zsh_history && \
+    echo "finished"
 
 # 网速慢可以手动执行
 # RUN command -v playwright >/dev/null 2>&1 && playwright install-deps && playwright install

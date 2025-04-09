@@ -12,7 +12,7 @@ class BaseAgentState(BaseModel):
     pass
 
 
-class ToolCallReActAgentState(BaseModel):
+class ReActAgentState(BaseModel):
     """The state of the agent."""
 
     messages: Annotated[List[BaseMessage], add_messages] = Field(default_factory=list)
@@ -31,7 +31,7 @@ class PlannerAgentState(BaseAgentState):
     response: str = None
 
 
-class PlanAndExecuteAgentState(ToolCallReActAgentState, PlannerAgentState):
+class PlanAndExecuteAgentState(ReActAgentState, PlannerAgentState):
     pass
 
 

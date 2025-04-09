@@ -1,22 +1,15 @@
 from abc import ABC, abstractmethod
 from typing import Counter, List
 
-from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from pydantic import BaseModel, Field
 
 
-class BaseFlow(ABC, BaseModel):
-    name: str = Field(..., title="Name of the flow")
+class BaseFlow(ABC):
+    name: str = None
 
     @abstractmethod
     def build_workflow(self, **kwargs) -> CompiledStateGraph:
         raise NotImplementedError
-
-    # @abstractmethod
-    # def build_and_compile_workflow(self, **kwargs) -> CompiledStateGraph:
-    #     workflow = self.build_workflow(**kwargs)
-    #     return workflow.compile(**kwargs)
 
     @staticmethod
     def _validate_tools(tool_names: List[str]):
