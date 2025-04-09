@@ -3,6 +3,7 @@ from datetime import datetime
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from loguru import logger
 
 from toy_agent._state import Plan, PlanAndExecuteAgentState
@@ -19,7 +20,7 @@ class Planner(BaseNode):
         self.llm = llm
 
     async def __call__(
-        self, state: PlanAndExecuteAgentState, config
+        self, state: PlanAndExecuteAgentState, config: RunnableConfig
     ) -> PlanAndExecuteAgentState:
         logger.debug(f"[{self.name}]  state: {state}")
         logger.debug(f"[{self.name}] config: {config.keys()}")

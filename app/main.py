@@ -1,10 +1,12 @@
 import asyncio
 import os
+import uuid
 from datetime import datetime
 from typing import List
 
 from langchain_community.tools.tavily_search import TavilySearchResults  # noqa: F401
 from langchain_core.messages import AnyMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_ollama import ChatOllama
 from loguru import logger
 
@@ -33,16 +35,20 @@ async def main():
             f.write(f"{datetime.now()}\n```mermaid\n{graph_mermaid}\n```".encode())
     except Exception as e:
         logger.warning(f"Failed to save graph image: {e}")
-    return
 
-    config = {"recursion_limit": 50}
+    config = RunnableConfig(
+        recursion_limit=50,
+        configurable={
+            "thread_id": uuid.uuid4().__str__(),
+        },
+    )
+
     start_state = PlanAndExecuteAgentState(
         input="联合国安理会最近一次会议讨论了什么议题",
     )
-    async for event in app.astream(start_state, config=config):
+    async for event in app.astream(start_state, config=config, subgraphs=True):
         for k, v in event.items():
             logger.info(f"🤖 [asteam:{k}] {v}")
-            continue
             messages: List[AnyMessage] = v.get("messages", [])
             last_message: AnyMessage = None
             if messages:

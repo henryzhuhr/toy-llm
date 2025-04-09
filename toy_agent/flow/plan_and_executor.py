@@ -9,9 +9,11 @@ from langchain_core.language_models.chat_models import BaseChatModel
 # )
 from langchain_core.tools.base import BaseTool
 from langchain_ollama import ChatOllama
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from loguru import logger
+from pydantic import Field
 
 from toy_agent._state import PlanAndExecuteAgentState
 from toy_agent.agent.planner import Planner
@@ -25,14 +27,15 @@ class PlanAndExecutorFlow(BaseFlow):
     name: str = "plan_and_execute_agent"
 
     llm: Union[ChatOllama, BaseChatModel] = None
-    tools: List[BaseTool] = None
-    tool_names: List[str] = None
+
+    tools: List[BaseTool] = Field(default_factory=list)
+
+    tool_names: List[str] = Field(default_factory=list)
 
     def __init__(
         self, llm: Union[BaseChatModel, ChatOllama], tools: List[BaseTool] = None
     ):
         super().__init__()
-
         self.llm = llm
         self.tools = tools or []
         self.tool_names = [t.name for t in tools]
@@ -78,10 +81,15 @@ class PlanAndExecutorFlow(BaseFlow):
             should_end,
             [tool_react_executor.name, END],
         )
+
+        # --- persistence ---
+        memory_saver = MemorySaver()
+
         # --- compile ---
         compiled_state_graph = workflow.compile(
             debug=False,
             name="plan_and_execute_agent_test",
+            checkpointer=memory_saver,
         )
         return compiled_state_graph
 

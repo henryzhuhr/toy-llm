@@ -2,10 +2,14 @@ from abc import ABC, abstractmethod
 from typing import Counter, List
 
 from langgraph.graph.state import CompiledStateGraph
+from pydantic import BaseModel
 
 
-class BaseFlow(ABC):
+class BaseFlow(ABC, BaseModel):
     name: str = None
+
+    def __init__(self):
+        super().__init__()
 
     @abstractmethod
     def build_workflow(self, **kwargs) -> CompiledStateGraph:

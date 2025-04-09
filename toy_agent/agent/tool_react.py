@@ -177,7 +177,7 @@ class ReActExecutor(BaseNode):
 
     @staticmethod
     def inject_variables(graph: CompiledStateGraph):
-        async def wrapper(state: PlanAndExecuteAgentState, config):
+        async def wrapper(state: PlanAndExecuteAgentState, config: RunnableConfig):
             logger.debug(f"[{graph.name}]  state: {state}")
 
             plan = state.plan or []
