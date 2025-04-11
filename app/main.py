@@ -46,7 +46,12 @@ async def main():
     start_state = PlanAndExecuteAgentState(
         input="联合国安理会最近一次会议讨论了什么议题",
     )
-    async for event in app.astream(start_state, config=config, subgraphs=True):
+    async for event in app.astream(
+        start_state,
+        config=config,
+        # subgraphs=True,  # https://langchain-ai.github.io/langgraph/how-tos/subgraphs-manage-state/#define-parent-graph
+    ):
+        # print(event)
         for k, v in event.items():
             logger.info(f"🤖 [asteam:{k}] {v}")
             messages: List[AnyMessage] = v.get("messages", [])

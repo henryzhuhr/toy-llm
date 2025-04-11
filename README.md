@@ -44,6 +44,7 @@ docker compose down
 - Tutorial:
   - [手把手教你从零搭建Agent框架](https://github.com/OceanPresentChao/llm-ReAct/blob/main/doc/手把手教你从零搭建Agent框架.md)
   - [KMnO4-zx/TinyAgent](https://github.com/KMnO4-zx/TinyAgent): 基于ReAct手搓一个Agent Demo
+  - [Multi-Tool Orchestration with RAG approach using OpenAI's Responses API](https://cookbook.openai.com/examples/responses_api/responses_api_tool_orchestration#query-the-pinecone-index)
 
 
 ## License
