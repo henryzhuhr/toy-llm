@@ -1,5 +1,5 @@
 import os
-from typing import Annotated, List, Union
+from typing import Annotated, List, Optional, Union
 
 from langchain_community.tools import CopyFileTool
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -7,8 +7,8 @@ from langchain_core.tools import BaseTool
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.graph.graph import CompiledGraph
 from langgraph.graph.message import add_messages
-from langgraph.graph.state import CompiledGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 from typing_extensions import TypedDict
 
@@ -40,7 +40,7 @@ def stream_graph_updates(graph: CompiledGraph, user_input: str):
         {"messages": [("user", user_input)]}, config, stream_mode="values"
     )
 
-    assistant: Union[AIMessage, HumanMessage, ToolMessage] = None
+    assistant: Optional[Union[AIMessage, HumanMessage, ToolMessage]] = None
     for event in events:
         assistant = event["messages"][-1]
         # print(
