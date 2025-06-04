@@ -17,8 +17,7 @@ services:
       - "/etc/localtime:/etc/localtime:ro" # 挂载宿主机时间到容器
       - ".:/root/toy-llm"
     working_dir: /root/toy-llm
-    # sleep infinity 用于保持容器运行，否则 vscode 无法进入容器，建议写在 .devcontainer/docker-compose.yml 文件中
-    command: sleep infinity
+    command: ["sleep", 'infinity']
 
   
   # ollama-server:
