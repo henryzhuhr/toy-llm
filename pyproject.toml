@@ -16,11 +16,12 @@ dependencies = [
     "langgraph>=0.3.10",
     "loguru>=0.7.3",
     "playwright>=1.51.0",
+    "pypdf>=6.4.2",
 ]
+
+[[tool.uv.index]]
+url = "https://mirrors.ustc.edu.cn/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.cloud.tencent.com/pypi/simple/"
 default = true
-
-[[tool.uv.index]]
-url = "https://mirrors.ustc.edu.cn/pypi/simple"

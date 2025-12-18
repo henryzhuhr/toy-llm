@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from langchain.agents import Tool, initialize_agent
+from langchain.agents import Tool
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
@@ -15,11 +15,11 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.messages import (
     AIMessage,
     AnyMessage,
-    BaseMessage,
     HumanMessage,
     SystemMessage,
     ToolMessage,
 )
+from langchain_core.runnables import RunnableConfig
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
@@ -27,14 +27,18 @@ from pydantic import BaseModel
 
 
 class ModelConfig(BaseModel):
-    base_url: str = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-    model_name: str = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:7b")
+    # base_url: str = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    model_name: str = os.getenv("OLLAMA_MODEL_NAME", "qwen3:1.7b")
 
 
 def main():
     model_config = ModelConfig()
-    llm_model = ChatOllama(  # 初始化 ChatOllama 模型
-        base_url=model_config.base_url, model=model_config.model_name
+
+    # 初始化 ChatOllama 模型
+    llm_model = ChatOllama(
+        base_url=model_config.base_url,
+        model=model_config.model_name,
     )
 
     # 初始化电商客服机器人
@@ -77,13 +81,13 @@ def main():
         为了给它提供记忆，我们需要传递一个检查点器。
         在传递检查点器时，我们还需要在调用代理时传递一个线程_id（这样它就知道从哪个线程/对话中恢复）。
         """
-        config = {"configurable": {"thread_id": "abc123"}}
+        config = RunnableConfig(configurable={"thread_id": "abc123"})
         stream = agent_executor.stream(
             inputs,
             config,
             stream_mode="values",
         )
-        assistant: Optional[str] = None
+        assistant: Optional[AIMessage] = None
 
         for s in stream:
             message: AnyMessage = s["messages"][-1]
@@ -105,9 +109,10 @@ def main():
                 print("❌", message.type, message)
         if assistant:
             print(
-                f"🤖\033[01;32m【客服回答】{repr(assistant.content)}\033[0m",
+                f"🤖\033[01;32m【客服回答】{assistant.content}\033[0m",
+                # f"🤖\033[01;32m【客服回答】{repr(assistant.content)}\033[0m",
             )
-            messages.append(("assistant", assistant.content))
+            messages.append(AIMessage(content=assistant.content))
         print()
         # input("next:")
     return
@@ -183,8 +188,8 @@ class FQATools:
 
 
 class EcommerceFunctions:
-    def __init__(self, fqa_model="qwen2.5:7b", fqa_file="./data/ecommerce_faq.txt"):
-        self.fqa_tools = FQATools(fqa_model, fqa_file)
+    def __init__(self, model_config: ModelConfig, fqa_file="./data/ecommerce_faq.txt"):
+        self.fqa_tools = FQATools(model_config, fqa_file)
 
     # 模拟问关于订单
     @staticmethod
@@ -199,7 +204,7 @@ class EcommerceFunctions:
     @staticmethod
     def recommend_product(input: str) -> str:
         print(f"【工具调用】模拟产品推荐, input={input}")
-        return f"蓝色格子衫"
+        return "蓝色格子衫"
 
     # 自由问答
     def faq(self, input: str) -> str:
