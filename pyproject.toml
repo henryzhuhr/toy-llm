@@ -9,14 +9,18 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "baidusearch>=1.0.3",
+    "dashscope>=1.25.5",
     "faiss-cpu>=1.10.0",
     "langchain>=0.3.20",
     "langchain-community>=0.3.19",
     "langchain-ollama>=0.2.3",
+    "langchain-openai>=0.3.35",
+    "langchain-text-splitters>=0.3.6",
     "langgraph>=0.3.10",
     "loguru>=0.7.3",
     "playwright>=1.51.0",
     "pypdf>=6.4.2",
+    "tiktoken>=0.12.0",
 ]
 
 [[tool.uv.index]]
