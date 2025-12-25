@@ -10,8 +10,7 @@ import os
 from typing import List
 
 from bs4.filter import SoupStrainer
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain.tools import tool
+from langchain.agents import create_agent
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
 from langchain_core.messages import (
@@ -21,26 +20,51 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
-from langchain_core.prompts import MessagesPlaceholder
-from langchain_core.prompts.chat import ChatPromptTemplate
-from langchain_core.runnables import Runnable
+from langchain_core.tools import BaseTool
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langgraph.graph.state import CompiledStateGraph
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.log.interface import Logger
 
 
+class RetrieveContextTool(BaseTool):
+    name: str = "retrieve_context"
+    description: str = "Retrieve relevant information from the indexed document to help answer a query."
+
+    vector_store: InMemoryVectorStore = Field(..., exclude=True)  # 不序列化到 LLM
+    k: int = 2
+
+    def _run(self, query: str) -> str:
+        retrieved_docs = self.vector_store.similarity_search(query, k=self.k)
+        serialized = "\n\n".join(
+            f"Source: {doc.metadata}\nContent: {doc.page_content}"
+            for doc in retrieved_docs
+        )
+        return serialized
+
+    # 如果你需要返回 artifact（如原始 Document 对象），可重写 invoke 或使用 response_format
+    # 但 BaseTool 默认只返回 str（或 JSON serializable）。若需 artifact，建议在 agent 层处理
+
+
 class RAGAgentConfig(BaseModel):
+    base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    """Ollama API base URL."""
+
     embeddings_model: str = "qwen3-embedding:0.6b"
+    """Ollama embeddings model name."""
+
+    chat_model: str = "qwen3:0.6b"
+    """Ollama chat model name."""
 
 
 class RAGAgent:
     config: RAGAgentConfig
 
-    agent_executor: AgentExecutor
+    agent: CompiledStateGraph
 
     embeddings: OllamaEmbeddings
     vector_store: InMemoryVectorStore
@@ -52,55 +76,35 @@ class RAGAgent:
         # 初始化向量存储
         self.vector_store = InMemoryVectorStore(self.embeddings)
 
-        @tool(response_format="content_and_artifact")
-        def retrieve_context(query: str):
-            """Retrieve information to help answer a query."""
-            retrieved_docs = self.vector_store.similarity_search(query, k=2)
-            serialized = "\n\n".join(
-                (f"Source: {doc.metadata}\nContent: {doc.page_content}")
-                for doc in retrieved_docs
-            )
-            return serialized, retrieved_docs
+        retrieve_tool = RetrieveContextTool(vector_store=self.vector_store)
 
-        tools = [retrieve_context]
-        # If desired, specify custom instructions
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                SystemMessage(
-                    content=(
-                        "You are an AI assistant that helps people find information "
-                        "about building agents with LangChain."
-                    ),
-                ),
-                HumanMessage(
-                    content=(
-                        "Use the following context to answer the question:\n"
-                        "{retrieve_context}\n\n"
-                        "Question: {input}"
-                    ),
-                ),
-                MessagesPlaceholder(variable_name="agent_scratchpad"),
-                # ("system", "You are a helpful assistant"),
-                # ("placeholder", "{chat_history}"),
-                # ("human", "{input}"),
-            ]
+        tools = [retrieve_tool]
+        prompt = SystemMessage(
+            content=(
+                # "You are an AI assistant that helps people find information "
+                # "about building agents with LangChain."
+                "您是一个AI助手，帮助人们寻找有关使用LangChain构建代理的信息。尽可能使用中文回答。"
+            ),
         )
-        base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen3:4b")
-        chat_model = ChatOllama(base_url=base_url, model=model_name)
-        agent = create_tool_calling_agent(chat_model, tools, prompt=prompt)
-        self.agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+        chat_model = ChatOllama(base_url=config.base_url, model=config.chat_model)
+        self.agent = create_agent(chat_model, tools, system_prompt=prompt)
 
     def add_documents(self, documents: List[Document]):
         document_ids = self.vector_store.add_documents(documents)
         return document_ids
 
     def run(self, query: str):
-        result = self.agent_executor.invoke({"input": query})
-        print(result)
-        print(type(result))
-        return result
+        for event in self.agent.stream(
+            {"messages": [HumanMessage(content=query)]},
+            stream_mode="values",
+        ):
+            message: AnyMessage = event["messages"][-1]
+            if isinstance(message, AIMessage):
+                logger.info(f"🤖 Assistant: {message}")
+            elif isinstance(message, ToolMessage):
+                logger.info(f"🔨 Tool Result: {message}")
+            else:
+                logger.info(f"💌 Message({type(message)}):  {message}")
 
 
 class AgentDocumentLoader:
@@ -140,6 +144,7 @@ def main(log: Logger):
     log.info(f"Added {len(document_ids)} documents to vector store: {document_ids[:5]}")
 
     query = "What are the key aspects of building an agent with LangChain?"
+    query = "使用LangChain构建代理的关键方面是什么？，使用中文回答"
     log.info(f"Running RAG agent with query: {query}")
     agent.run(query)
 

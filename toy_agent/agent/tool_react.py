@@ -11,7 +11,6 @@ from langchain_core.messages import (
 )
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools.base import BaseTool
-from langgraph.graph.graph import CompiledGraph
 from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.managed import IsLastStep, RemainingSteps
@@ -63,11 +62,11 @@ Question: {input}"""
 class ReActAgent(BaseNode):
     name: str = "ReActAgent"
 
-    llm: BaseChatModel = None
-    tools: List[BaseTool] = None
+    llm: BaseChatModel
+    tools: List[BaseTool]
 
-    def __init__(self, llm: BaseChatModel, tools: List[BaseTool] = None):
-        super().__init__()
+    def __init__(self, llm: BaseChatModel, tools: List[BaseTool] = []):
+        # super().__init__()
         self.llm = llm
         self.tools = tools or []
 
@@ -167,13 +166,13 @@ class ReActAgent(BaseNode):
 class ReActExecutor(BaseNode):
     name: str = "ReActExecutor"
 
-    graph: CompiledGraph = None
+    graph: CompiledStateGraph
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, graph: CompiledGraph):
-        super().__init__()
+    def __init__(self, graph: CompiledStateGraph):
         self.graph = graph
         self.name = self.graph.name
+        # super().__init__()
 
     @staticmethod
     def inject_variables(graph: CompiledStateGraph):

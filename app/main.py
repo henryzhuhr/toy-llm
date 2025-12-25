@@ -7,20 +7,20 @@ from typing import List, Optional
 from langchain_community.tools.tavily_search import TavilySearchResults  # noqa: F401
 from langchain_core.messages import AnyMessage
 from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import BaseTool
 from langchain_ollama import ChatOllama
 from loguru import logger
 
 from toy_agent._state import PlanAndExecuteAgentState
 from toy_agent.flow.plan_and_executor import PlanAndExecutorFlow
-from toy_agent.tools.baidu_search import BaiduSearchTool
 
 
 async def main():
     base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:7b")
+    model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen3:1.7b")
     llm = ChatOllama(base_url=base_url, model=model_name)
 
-    tools = [
+    tools: List[BaseTool] = [
         TavilySearchResults(max_results=1),
         # BaiduSearchTool(max_results=1),
     ]
