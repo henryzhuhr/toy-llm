@@ -54,25 +54,19 @@ services:
   #       max-size: "10m"
   #       max-file: "3"
 
-  # open-webui:
-  #   image: ghcr.io/open-webui/open-webui:main
-  #   ports:
-  #     - "3000:8080" # http://localhost:3000
-  #   volumes:
-  #     - open_webui_volume:/app/backend/data
-  #   environment:
-  #     - OLLAMA_BASE_URL=http://ollama-server:11434
-  #     - WEBUI_NAME="Your Local AI Assistant" # Sets the main WebUI name. Appends (Open WebUI) if overridden.
-  #     - WEBUI_AUTH=False
-  #     - WEBUI_SECRET_KEY=t0p-s3cr3t
-  #   restart: unless-stopped
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080" # http://localhost:3000
+    environment:
+      - OLLAMA_BASE_URL=http://ollama-server:11434
+      - WEBUI_NAME="Your Local AI Assistant" # Sets the main WebUI name. Appends (Open WebUI) if overridden.
+      - WEBUI_AUTH=False
+      - WEBUI_SECRET_KEY=t0p-s3cr3t
+    restart: unless-stopped
 
 
 # -- 网络名称，用于容器间通信
 networks:
   default:
     name: toyllm-network
-  
-volumes:
-  # ollama_volume:
-  open_webui_volume:

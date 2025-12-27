@@ -102,29 +102,11 @@ ARG USER_HOME="/${USER_NAME}"
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # 默认使用系统 Python 环境
-ENV UV_SYSTEM=true 
-ENV VIRTUAL_ENV=$USER_HOME/.venv
+ENV UV_SYSTEM=true
 
-ADD . $USER_HOME/tmp
+
 ENV UV_DEFAULT_INDEX="https://mirrors.cloud.tencent.com/pypi/simple/"
 # ENV UV_INDEX="https://mirrors.ustc.edu.cn/pypi/simple"
-RUN set -x && \
-    uv venv $VIRTUAL_ENV && \
-    echo "source ${VIRTUAL_ENV}/bin/activate" >> $USER_HOME/.zshrc && \
-    # [ -f $USER_HOME/tmp/pyproject.toml ] && uv sync --active --directory $USER_HOME/tmp || \
-    # ([ -f $USER_HOME/tmp/requirements.txt ] && uv add --active -r ${USER_HOME}/tmp/requirements.txt) && \
-    # if [ -f "$USER_HOME/tmp/pyproject.toml" ]; then \
-    #     uv sync --active --directory $USER_HOME/tmp; \
-    # elif [ -f "$USER_HOME/tmp/requirements.txt" ]; then \
-    #     uv add --active -r $USER_HOME/tmp/requirements.txt; \
-    # fi && \
-    rm -rf $(uv cache dir) && \
-    rm -rf $USER_HOME/tmp && \
-    # 在 uv 没有支持全局变量前，临时加入 history 文件
-    echo ": $(date +%s):0;uv add  --active" >> $USER_HOME/.zsh_history && \
-    echo ": $(date +%s):0;uv run  --active" >> $USER_HOME/.zsh_history && \
-    echo ": $(date +%s):0;uv sync --active" >> $USER_HOME/.zsh_history && \
-    echo "finished"
 
 # 环境初始化脚本，加快构建镜像的速度
 RUN echo ": $(date +%s):0;bash scripts/init.sh" >> $USER_HOME/.zsh_history
@@ -133,5 +115,4 @@ RUN echo ": $(date +%s):0;bash scripts/init.sh" >> $USER_HOME/.zsh_history
 # RUN command -v playwright >/dev/null 2>&1 && playwright install-deps && playwright install
 
 # 提升虚拟环境 python 的优先级
-ENV PATH=${VIRTUAL_ENV}/bin:$PATH
 ENV VIRTUAL_ENV_DISABLE_PROMPT=1

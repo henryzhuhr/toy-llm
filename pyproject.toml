@@ -11,6 +11,7 @@ dependencies = [
     "baidusearch>=1.0.3",
     "dashscope>=1.25.5",
     "faiss-cpu>=1.10.0",
+    "fastapi>=0.127.0",
     "langchain>=1.2.0",
     "langchain-community>=0.4.1",
     "langchain-ollama>=1.0.1",
@@ -21,11 +22,12 @@ dependencies = [
     "playwright>=1.51.0",
     "pypdf>=6.4.2",
     "tiktoken>=0.12.0",
+    "uvicorn>=0.40.0",
 ]
-
-[[tool.uv.index]]
-url = "https://mirrors.ustc.edu.cn/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.cloud.tencent.com/pypi/simple/"
 default = true
+
+[[tool.uv.index]]
+url = "https://mirrors.ustc.edu.cn/pypi/simple"
