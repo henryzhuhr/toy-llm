@@ -2,9 +2,9 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  base: '/toyllm/',
-  title: "ToyLLM项目文档",
-  description: "ToyLLM项目文档",
+  base: '/toy-llm/',
+  title: "Toy LLM 项目文档",
+  description: "Toy LLM 项目文档",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -14,21 +14,21 @@ export default defineConfig({
 
     sidebar: [
       {
-        text: 'ToyLLM项目文档导航',
+        text: '项目导航',
         items: [
-          { text: '项目使用文档', link: '/usage' },
-          { text: '大模型相关知识学习记录', link: '/preliminary' }
+          { text: '使用文档', link: '/usage' },
+          // { text: '大模型相关知识学习记录', link: '/preliminary' }
         ]
       }
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/henryzhuhr/toyllm' }
+      { icon: 'github', link: 'https://github.com/henryzhuhr/toy-llm' }
     ],
     externalLinkIcon: true,
     footer: {
-      message: '基于 <a href="https://choosealicense.com/licenses/gpl-3.0/">GPL-3.0</a> 许可发布',
-      copyright: `版权所有 © 2024-${new Date().getFullYear()} <a href="https://github.com/HenryZhuHR?tab=repositories">HenryZhuHR</a>`
+      message: '基于 <a href="https://mit-license.org/">MIT</a> 许可发布',
+      copyright: `版权所有 © 2024-${new Date().getFullYear()} <a href="https://github.com/HenryZhuHR">HenryZhuHR</a>`
     },
     outline: {
       label: '页面导航'

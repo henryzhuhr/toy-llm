@@ -1,23 +1,49 @@
---index-url https://download.pytorch.org/whl/cu121
---extra-index-url https://download.pytorch.org/whl/cpu
---extra-index-url https://pypi.tuna.tsinghua.edu.cn/simple
---extra-index-url https://pypi.org/simple
+# --index-url https://download.pytorch.org/whl/cu121
+# --extra-index-url https://download.pytorch.org/whl/cpu
+# --extra-index-url https://pypi.tuna.tsinghua.edu.cn/simple
+--extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/
 
-torch
-torchvision
+# loguru
 
-transformers>=4.40.0
-huggingface-hub>=0.21.3
+# python-dotenv
 
-# -- onnx--
-onnx>=1.15.0
+# # -- torch --
+# torch
+# torchvision
 
-# -- openvino --
-# openvino-dev>=2024.0.0
-# openvino>=2024.0.0
-nncf==2.8.1
 
-# -- optimum --
-# optimum
-# optimum-intel
-optimum[openvino]
+# -- transformers & huggingface --
+# transformers>4.40.0
+# bitsandbytes # from transformers import BitsAndBytesConfig
+# huggingface-hub>=0.21.3
+# accelerate>=0.26.0
+# tensorboardX
+
+
+# # -- ollama -- 
+# ollama
+
+# # -- openai --
+# openai
+
+# # -- qwen --
+# qwen_agent
+# python-dateutil
+
+
+# langchain_community
+langchain #==0.2.74
+langchain-community #==0.3.17
+langchain-ollama #== 0.2.3
+langchain-chroma #==0.2.2
+langgraph #==0.2.74
+bs4
+# faiss-cpu # faiss-gpu
+
+langgraph
+# langsmith
+# langchain_anthropic
+# langfuse
+
+# # -- 百度搜索 --
+# baidusearch
