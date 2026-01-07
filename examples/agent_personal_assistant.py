@@ -7,13 +7,11 @@ https://docs.langchain.com/oss/python/integrations/splitters/markdown_header_met
 """
 
 import os
-from typing import List
+from datetime import datetime
+from typing import Dict, List, Literal
 
-from bs4.filter import SoupStrainer
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain.tools import tool
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_core.documents import Document
+from langchain.agents import create_agent
+from langchain.tools import BaseTool, tool
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
@@ -27,11 +25,10 @@ from langchain_core.prompts.chat import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_ollama import ChatOllama, OllamaEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from src.log.interface import Logger
+# from src.log.interface import Logger
 
 # ============================================================================
 # Define low-level API tools (stubbed)
@@ -79,7 +76,7 @@ class PersonalAssistantConfig(BaseModel):
         default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     )
     model_name: str = Field(
-        default_factory=lambda: os.getenv("OLLAMA_MODEL_NAME", "qwen3:1.7b")
+        default_factory=lambda: os.getenv("OLLAMA_MODEL_NAME", "qwen3:0.6b")
     )
 
 
@@ -100,8 +97,9 @@ class PersonalAssistant:
 
 
 class CalendarAgent:
+    name: str = "CalendarAgent"
     chat_model: BaseChatModel
-    agent_executor: AgentExecutor
+    agent: Runnable
     SYSTEM_PROMPT = (
         "You are a calendar scheduling assistant. "
         "Parse natural language scheduling requests (e.g., 'next Tuesday at 2pm') "
@@ -110,10 +108,18 @@ class CalendarAgent:
         "Use create_calendar_event to schedule events. "
         "Always confirm what was scheduled in your final response."
     )
+    SYSTEM_PROMPT_ZH = (
+        "您是一个日历日程安排助手。 "
+        "解析自然语言调度请求（例如，“下周二下午2点”） "
+        "转换为正确的ISO日期时间格式。"
+        "使用get_available_time_slots在需要时检查可用时间。 "
+        "使用 create_calendar_event 来安排事件。 "
+        "始终确认您最终回复中的安排内容。"
+    )
 
     def __init__(self, chat_model: BaseChatModel) -> None:
         self.chat_model = chat_model
-        prompt = ChatPromptTemplate.from_messages(
+        prompt = ChatPromptTemplate.from_messages(  # noqa: F841
             [
                 SystemMessage(content=self.SYSTEM_PROMPT),
                 HumanMessage(
@@ -124,20 +130,34 @@ class CalendarAgent:
                 MessagesPlaceholder(variable_name="agent_scratchpad"),
             ]
         )
+        system_prompt = SystemMessage(content=self.SYSTEM_PROMPT_ZH)
         tools = [create_calendar_event, get_available_time_slots]
-        calendar_agent = create_tool_calling_agent(
-            chat_model, tools=tools, prompt=prompt
-        )
-        self.agent_executor = AgentExecutor(
-            agent=calendar_agent, tools=tools, verbose=False
-        )
+
+        self.agent = create_agent(chat_model, tools=tools, system_prompt=system_prompt)
 
     def run(self, query: str):
-        for chunk in self.agent_executor.stream({"input": query}):
+        for chunk in self.agent.stream(
+            {
+                "messages": [
+                    HumanMessage(content=query),
+                    HumanMessage(content=f"当前的时间为：{datetime.now()}"),
+                ]
+            }
+        ):
             # chunk: dict like {"agent": AIMessage(...)} or {"action": ToolMessage(...)}
-            for key, messages in chunk.items():
-                messages: List[AnyMessage]
-                logger.debug(f"{key}:{type(messages)}: {len(messages)}")
+            for key, message_dict in chunk.items():
+                message_dict: Dict[Literal["messages"], List[AnyMessage]]
+                messages = message_dict.get("messages", [])
+                message_json = messages[0].model_dump_json(
+                    exclude={
+                        "usage_metadata",  #
+                        "response_metadata",  #
+                    }
+                )
+                logger.debug(
+                    f"[{key} message_dict]:{type(message_dict)}:{message_dict.keys()} "
+                    f"messages:{len(messages)} : {message_json}"
+                )
                 break
                 if isinstance(messages, (AIMessage, HumanMessage, ToolMessage)):
                     logger.info(f"type: {type(messages)} {messages}")
@@ -154,11 +174,11 @@ class EmailAgent:
         "Always confirm what was sent in your final response."
     )
     chat_model: BaseChatModel
-    agent_executor: AgentExecutor
+    agent: Runnable
 
     def __init__(self, chat_model: BaseChatModel) -> None:
         self.chat_model = chat_model
-        prompt = ChatPromptTemplate.from_messages(
+        prompt = ChatPromptTemplate.from_messages(  # noqa: F841
             [
                 SystemMessage(content=self.SYSTEM_PROMPT),
                 HumanMessage(
@@ -169,16 +189,14 @@ class EmailAgent:
                 MessagesPlaceholder(variable_name="agent_scratchpad"),
             ]
         )
-        tools = [create_calendar_event, get_available_time_slots]
-        calendar_agent = create_tool_calling_agent(
-            chat_model, tools=tools, prompt=prompt
-        )
-        self.agent_executor = AgentExecutor(
-            agent=calendar_agent, tools=tools, verbose=True
-        )
+        system_prompt = SystemMessage(content=self.SYSTEM_PROMPT)
+        tools = [send_email]
+        self.agent = create_agent(chat_model, tools=tools, system_prompt=system_prompt)
 
     def run(self, query: str):
-        for chunk in self.agent_executor.stream({"input": query}):
+        for chunk in self.agent.stream(
+            {"messages": [{"role": "user", "content": query}]}
+        ):
             # chunk: dict like {"agent": AIMessage(...)} or {"action": ToolMessage(...)}
             for key, message in chunk.items():
                 print(f" - type: {type(message)} {message}")
@@ -187,13 +205,66 @@ class EmailAgent:
                     print(f" MESSAGE - type: {type(message)} {message}")
 
 
+class SupervisorAgent:
+    SYSTEM_PROMPT = (
+        "You are an email assistant. "
+        "Compose professional emails based on natural language requests. "
+        "Extract recipient information and craft appropriate subject lines and body text. "
+        "Use send_email to send the message. "
+        "Always confirm what was sent in your final response."
+    )
+    chat_model: BaseChatModel
+    agent: Runnable
+
+    def __init__(self, chat_model: BaseChatModel, tools) -> None:
+        self.chat_model = chat_model
+        system_prompt = SystemMessage(content=self.SYSTEM_PROMPT)
+        tools = [send_email]
+        self.agent = create_agent(chat_model, tools=tools, system_prompt=system_prompt)
+
+    def run(self, query: str):
+        for chunk in self.agent.stream(
+            {
+                "messages": [
+                    HumanMessage(content=query),
+                    HumanMessage(content=f"当前的时间为：{datetime.now()}"),
+                ]
+            }
+        ):
+            # chunk: dict like {"agent": AIMessage(...)} or {"action": ToolMessage(...)}
+            for key, message_dict in chunk.items():
+                message_dict: Dict[Literal["messages"], List[AnyMessage]]
+                messages = message_dict.get("messages", [])
+                message_json = messages[0].model_dump_json(
+                    exclude={
+                        "usage_metadata",  #
+                        "response_metadata",  #
+                    }
+                )
+                logger.debug(
+                    f"[{key} message_dict]:{type(message_dict)}:{message_dict.keys()} "
+                    f"messages:{len(messages)} : {message_json}"
+                )
+                break
+                if isinstance(messages, (AIMessage, HumanMessage, ToolMessage)):
+                    logger.info(f"type: {type(messages)} {messages}")
+                else:
+                    logger.debug(f"type: {type(messages)} {messages}")
+
+
 def main():
     config = PersonalAssistantConfig()
     assistant = PersonalAssistant(config=config)
     # Example usage:
 
     calendar_agent = CalendarAgent(assistant.chat_model)
-    calendar_agent.run("Schedule a team meeting next Tuesday at 2pm for 1 hour")
+    # calendar_agent.run("Schedule a team meeting next Tuesday at 2pm for 1 hour")
+    calendar_agent.run("安排下周二下午2点的团队会议，时长1小时")
+
+    email_agent = EmailAgent(assistant.chat_model)
+    query = "Send the design team a reminder about reviewing the new mockups"
+    query = "发送提醒给设计团队，关于审查新样图"
+    email_agent.run(query)
 
 
 if __name__ == "__main__":
